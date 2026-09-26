@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Coastwise | Hurricane Risk Explorer</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/vendor/leaflet.css">
+  <link rel="stylesheet" href="/src/styles.css">
+  <script defer src="/vendor/leaflet.js"></script>
+  <script defer src="/vendor/lucide.js"></script>
+  <script defer src="/src/app.js"></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="/"><span class="brand-mark"><i data-lucide="tornado"></i></span>Coastwise</a>
+    <p class="sidebar-label">LOCATION INTELLIGENCE</p>
+    <nav aria-label="Main navigation">
+      <button class="nav-button active" data-view="overview" aria-pressed="true"><i data-lucide="layout-dashboard"></i>Overview</button>
+      <button class="nav-button" data-view="history" aria-pressed="false"><i data-lucide="history"></i>Storm records</button>
+      <button class="nav-button" data-view="sources" aria-pressed="false"><i data-lucide="database"></i>Sources &amp; methods</button>
+    </nav>
+    <div class="sidebar-bottom"><i data-lucide="globe-2"></i><div>Worldwide storm history<small>Local community context</small></div></div>
+    <p class="project-credit">Carolina Data Challenge 2026</p>
+  </aside>
+  <div class="workspace">
+    <header class="topbar">
+      <form id="risk-form" class="search-form">
+        <i data-lucide="search"></i>
+        <label class="sr-only" for="location">City, region, or postal code</label>
+        <input id="location" name="location" placeholder="City, region, or postal code" value="Wilmington, NC" required minlength="2" maxlength="180" autocomplete="off">
+        <button type="submit" class="search-submit">Search<i data-lucide="arrow-right"></i></button>
+      </form>
+      <span class="topbar-label"><span class="dot"></span>Public data</span>
+    </header>
+    <div class="search-feedback">
+      <p id="search-status" role="status"></p>
+      <div id="location-choices"></div>
+    </div>
+    <main>
+      <div class="page-heading">
+        <div><p class="eyebrow">HURRICANE &amp; COMMUNITY EXPOSURE</p><h1 id="place-title">Wilmington</h1><p id="place-subtitle" class="muted">North Carolina, United States</p></div>
+        <div class="actions">
+          <button id="refresh" class="icon-button" title="Reload assessment" aria-label="Reload assessment" disabled><i data-lucide="refresh-cw"></i></button>
+          <button id="download" class="icon-button" title="Download assessment JSON" aria-label="Download assessment JSON" disabled><i data-lucide="download"></i></button>
+        </div>
+      </div>
+      <div id="loading" class="loading" role="status" hidden><span class="spinner"></span><div><strong>Building your local assessment</strong><p>Retrieving storm tracks, community data, and climate projections. The first lookup can take a minute.</p></div></div>
+      <div id="error" class="error-message" role="alert" hidden></div>
+      <div id="dashboard" hidden>
+        <section id="view-overview" class="view">
+          <div id="risk-banner"></div>
+          <div id="metrics" class="metrics"></div>
+          <div class="overview-grid">
+            <section class="map-section">
+              <div class="section-heading"><div><h2>Storms near this location</h2><p id="map-description"></p></div><span class="small-label">50-MILE RADIUS</span></div>
+              <div id="map" aria-label="Map of the selected location and recorded cyclone tracks"></div>
+              <div class="map-footer"><span><b class="legend-line hurricane"></b>Nearby hurricane</span><span><b class="legend-line tropical"></b>Nearby tropical storm</span><label><input type="checkbox" id="show-schools"> Schools</label></div>
+              <p class="footnote">Lines show up to 16 recent matching storm tracks. Winds describe the storm center, not winds measured at this location.</p>
+            </section>
+            <section class="nearby-section">
+              <div class="section-heading"><div><h2>Recent nearby storms</h2><p id="storm-window">NOAA IBTrACS</p></div><button class="icon-button small" data-open="history" title="All storm records" aria-label="All storm records"><i data-lucide="arrow-up-right"></i></button></div>
+              <div id="recent-storms"></div>
+            </section>
+          </div>
+          <section class="annual-section"><div class="section-heading"><div><h2>Historical activity</h2><p>Distinct nearby tropical cyclones by year</p></div><span class="small-label">NOAA IBTRACS</span></div><div id="annual-chart" class="annual-chart"></div><div class="chart-labels"><span>2000</span><span id="chart-end"></span></div></section>
+          <div class="community-grid" id="community-panels">
+            <section><div class="section-heading"><div><h2><i data-lucide="graduation-cap"></i>Schools &amp; residents</h2><p id="community-geography"></p></div></div><div id="schools-content"></div></section>
+            <section><div class="section-heading"><div><h2><i data-lucide="briefcase-business"></i>Workforce exposure</h2><p>Civilian employed residents, age 16+</p></div></div><div id="workforce-content"></div></section>
+          </div>
+          <div class="bottom-grid">
+            <section><div class="section-heading"><div><h2>Local storm damage</h2><p>NOAA Storm Events Database</p></div></div><div id="damage-content"></div></section>
+            <section><div class="section-heading"><div><h2>Climate outlook</h2><p>Modeled local temperature change</p></div></div><div id="climate-content"></div></section>
+          </div>
+        </section>
+        <section id="view-history" class="view" hidden>
+          <div class="section-heading"><div><h2>Nearby tropical cyclones</h2><p id="history-description"></p></div></div>
+          <div class="table-scroll"><table><thead><tr><th>Storm</th><th>Date</th><th>Nearest recorded center</th><th>Peak nearby wind</th><th>Nearby classification</th></tr></thead><tbody id="track-records"></tbody></table></div>
+          <div class="section-heading records-heading"><div><h2>County &amp; forecast-zone reports</h2><p>NOAA Storm Events. Multiple reports can describe the same storm.</p></div></div>
+          <div class="table-scroll"><table><thead><tr><th>Date</th><th>Event</th><th>Reporting area</th><th>Reported property damage</th><th>Source</th></tr></thead><tbody id="event-records"></tbody></table></div>
+        </section>
+        <section id="view-sources" class="view" hidden><h2>Sources &amp; calculation methods</h2><p class="muted">Each lookup uses coordinates and geographic identifiers. Provider responses are cached for up to 24 hours; climate data and the global archive for seven days.</p><div id="sources-content"></div><div class="method-note"><h3>What these numbers mean</h3><p>Observed annual occurrence is the fraction of complete calendar years with at least one hurricane-classified track position within 50 miles, using NOAA's USA wind and category fields. It is a historical sample frequency, not a forecast or an insured-loss probability. Track positions are discrete, so a storm passing between observations can be missed.</p><p>FEMA exposure is the county-wide building value exposed to hurricanes in an archived risk model, not a prediction of damage. The risk rating is FEMA's relative county ranking. ACS enrollment counts resident K–12 students, including private-school students; it is not enrollment at the NCES public schools shown on the map. ACS values are survey estimates.</p><p>Climate changes compare model means for 2025–2034 and 2040–2049 against 1995–2014. One model (MRI-AGCM3-2-S) is shown under HighResMIP forcing close to RCP8.5; it is not an ensemble or a hurricane-probability projection. Closures, unemployment spikes, and recovery times require event-specific evidence and are not inferred from these sources.</p><p>For locations outside U.S. county coverage, the assessment shows global storm history and climate context. The U.S. community datasets are not extrapolated to other countries.</p></div></section>
+        <footer class="page-footer"><span id="report-time"></span><button class="text-button" data-open="sources">Sources &amp; methodology<i data-lucide="arrow-up-right"></i></button></footer>
+      </div>
+      <noscript>This dashboard requires JavaScript and the local data server.</noscript>
+    </main>
+  </div>
+</body>
+</html>
