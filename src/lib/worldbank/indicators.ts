@@ -22,6 +22,7 @@ export type IndicatorId =
   | "education"
   | "agriculture"
   | "birthRate"
+  | "resourceRents"
   | "industry";
 
 export interface IndicatorDef {
@@ -68,6 +69,7 @@ export const INDICATORS: Record<IndicatorId, IndicatorDef> = {
   education: { id: "education", code: "SE.PRM.ENRR", name: "School enrollment, primary (% gross)", shortName: "School enrollment", category: "education", unit: "%", higherIsBetter: true, normalization: "towardTarget", scoreScale: 12, displayMin: 0, displayMax: 150, decimals: 1, scored: true, headline: true, source: WDI },
   agriculture: { id: "agriculture", code: "NV.AGR.TOTL.ZS", name: "Agriculture, forestry, and fishing, value added (% of GDP)", shortName: "Agriculture share", category: "structure", unit: "% of GDP", higherIsBetter: null, normalization: "difference", scoreScale: 10, displayMin: 0, displayMax: 80, decimals: 1, scored: false, headline: false, source: WDI },
   birthRate: { id: "birthRate", code: "SP.DYN.CBRT.IN", name: "Birth rate, crude (per 1,000 people)", shortName: "Birth rate", category: "structure", unit: "per 1,000", higherIsBetter: null, normalization: "difference", scoreScale: 5, displayMin: 0, displayMax: 60, decimals: 1, scored: false, headline: false, source: WDI },
+  resourceRents: { id: "resourceRents", code: "NY.GDP.TOTL.RT.ZS", name: "Total natural resources rents (% of GDP)", shortName: "Resource rents", category: "structure", unit: "% of GDP", higherIsBetter: null, normalization: "difference", scoreScale: 5, displayMin: 0, displayMax: 80, decimals: 1, scored: false, headline: false, source: WDI },
   industry: { id: "industry", code: "NV.IND.TOTL.ZS", name: "Industry (including construction), value added (% of GDP)", shortName: "Industry share", category: "structure", unit: "% of GDP", higherIsBetter: null, normalization: "difference", scoreScale: 10, displayMin: 0, displayMax: 80, decimals: 1, scored: false, headline: false, source: WDI },
 };
 

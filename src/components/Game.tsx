@@ -1,8 +1,8 @@
 "use client";
-import { useMemo, useState } from "react";
-import { advise, consumeAdvisor, type Advice } from "@/lib/game/advisor";
+import { useCallback, useMemo, useState } from "react";
 import { impactVsDoingNothing } from "@/lib/game/impact";
 import { applyDecision, beginDecision, createGame, nextTurn, worldReaction } from "@/lib/game/simulation";
+import type { RealHistory } from "@/lib/game/story";
 import type { GameState } from "@/lib/game/types";
 import type { StartPackage } from "@/lib/worldbank/package";
 import type { RivalsPackage } from "@/lib/worldbank/rivals";
@@ -23,8 +23,9 @@ export default function Game() {
   const [help, setHelp] = useState(false);
   const [rivals, setRivals] = useState<RivalsPackage | null>(null);
   const [rivalsError, setRivalsError] = useState<string | null>(null);
-  const [advice, setAdvice] = useState<Advice | null>(null);
-  const [adviceBusy, setAdviceBusy] = useState(false);
+  const [real, setReal] = useState<RealHistory | null>(null);
+  const [realPending, setRealPending] = useState(false);
+  const [realError, setRealError] = useState<string | null>(null);
   const { countries } = useCountries();
 
   function loadRivals(c: SetupChoice) {
@@ -36,6 +37,17 @@ export default function Game() {
       .catch((e) => setRivalsError(`${e.message ?? e} The board is unavailable; the game still works.`));
   }
 
+  /** Real history for the turns played so far. The server never returns years beyond `upTo`. */
+  const loadReal = useCallback((s: GameState, upTo: number) => {
+    setRealPending(true);
+    setRealError(null);
+    fetch(`/api/history?country=${s.countryCode}&year=${s.startYear}&edu=${encodeURIComponent(s.setup.educationCode)}&upTo=${upTo}`)
+      .then(async (r) => (r.ok ? r.json() : Promise.reject(new Error((await r.json()).error))))
+      .then((d: { history: RealHistory }) => setReal(d.history))
+      .catch((e) => setRealError(String(e.message ?? e)))
+      .finally(() => setRealPending(false));
+  }, []);
+
   async function start(c: SetupChoice) {
     setBusy(true);
     setError(null);
@@ -44,7 +56,7 @@ export default function Game() {
       const body = await response.json();
       if (!response.ok) throw new Error(body.error ?? "Could not load World Bank data.");
       setChoice(c);
-      setAdvice(null);
+      setReal(null);
       setState(createGame(body as StartPackage, { seed: c.seed, objective: c.objective, difficulty: c.difficulty }));
       loadRivals(c);
       setScreen("briefing");
@@ -60,27 +72,12 @@ export default function Game() {
     if (!state) return;
     const next = fn(state);
     setState(next);
-    if (next.phase !== "decision") setAdvice(null);
+    if (next.phase === "reaction") loadReal(next, next.turn);
     if (next.phase === "finished") setScreen("reveal");
     window.scrollTo(0, 0);
   };
 
   const regionLeader = (s: GameState) => isRegionLeader(standingsFor(s, rivals));
-
-  function consult() {
-    if (!state || state.advisorUses <= 0) return;
-    setAdviceBusy(true);
-    // Let the spinner render before the simulations run.
-    setTimeout(() => {
-      try {
-        setAdvice(advise(state, 16));
-        setState(consumeAdvisor(state));
-      } finally {
-        setAdviceBusy(false);
-      }
-    }, 30);
-  }
-
   const impact = useMemo(() => (state && state.metricHistory.length > 1 ? impactVsDoingNothing(state) : null), [state]);
 
   return (
@@ -89,13 +86,14 @@ export default function Game() {
       {screen === "setup" && <Setup onConfirm={start} onBack={() => setScreen("landing")} busy={busy} error={error} />}
       {screen === "briefing" && state && <CountryBriefing state={state} onBegin={() => setScreen("play")} />}
       {screen === "play" && state && (
-        <Dashboard state={state} onHowItWorks={() => setHelp(true)} rivals={rivals} rivalsError={rivalsError} countries={countries ?? []}
-          advice={advice} adviceBusy={adviceBusy} onConsult={consult} impact={impact}
-          onBeginDecision={() => act(beginDecision)} onDecide={(id) => act((s) => applyDecision(s, id))}
+        <Dashboard state={state} onHowItWorks={() => setHelp(true)} rivals={rivals} rivalsError={rivalsError} countries={countries ?? []} impact={impact}
+          real={real} realPending={realPending} realError={realError} onRetryReal={() => loadReal(state, state.turn)}
+          onBeginDecision={() => act(beginDecision)}
+          onDecide={(id) => act((s) => applyDecision(s, id))}
           onReact={() => act((s) => worldReaction(s, { regionLeader: regionLeader(s) }))} onNext={() => act(nextTurn)} />
       )}
       {screen === "reveal" && state && (
-        <Reveal state={state} rivals={rivals} regionLeader={regionLeader} onRestart={() => { setState(null); setScreen("setup"); }} onReplay={() => choice && start(choice)} />
+        <Reveal state={state} rivals={rivals} realSoFar={real} onRestart={() => { setState(null); setScreen("setup"); }} onReplay={() => choice && start(choice)} />
       )}
       <HowItWorks open={help} onClose={() => setHelp(false)} />
     </>

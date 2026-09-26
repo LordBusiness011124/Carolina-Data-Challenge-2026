@@ -2,16 +2,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatValue, signed } from "@/lib/format";
-import { OBJECTIVES } from "@/lib/game/rules";
+import { OBJECTIVES, POLICIES } from "@/lib/game/rules";
 import { historyDelta, type Values } from "@/lib/game/scoring";
 import type { GameState } from "@/lib/game/types";
 import { CATEGORY_LABELS, INDICATORS, SCORE_CATEGORIES, type IndicatorId } from "@/lib/worldbank/indicators";
 import type { RevealPackage } from "@/lib/worldbank/package";
-import { autoplay } from "@/lib/game/advisor";
 import { compareImpact, pathFromMetrics } from "@/lib/game/impact";
-import { createGame } from "@/lib/game/simulation";
+import type { RealHistory } from "@/lib/game/story";
 import type { RivalsPackage } from "@/lib/worldbank/rivals";
 import { ImpactLedger, standingsFor } from "./Board";
+import { Chronicle } from "./Story";
 import { ATTRIBUTION, Button, Panel } from "./ui";
 
 const COMPARE: IndicatorId[] = ["gdpPerCapita", "lifeExpectancy", "infantMortality", "electricity", "education", "unemployment", "co2", "renewable"];
@@ -24,21 +24,10 @@ function describe(id: IndicatorId, player: number, real: number, better: boolean
     : `Your timeline ended with ${name} at ${formatValue(id, player)}, compared with ${formatValue(id, real)} historically. This is where your choices cost the most relative to history.`;
 }
 
-export function Reveal({ state, rivals, regionLeader, onRestart, onReplay }: { state: GameState; rivals: RivalsPackage | null; regionLeader: (s: GameState) => boolean; onRestart: () => void; onReplay: () => void }) {
+export function Reveal({ state, rivals, realSoFar, onRestart, onReplay }: { state: GameState; rivals: RivalsPackage | null; realSoFar: RealHistory | null; onRestart: () => void; onReplay: () => void }) {
   const [data, setData] = useState<RevealPackage | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
-  const [ai, setAi] = useState<{ turn: number; final: GameState | null }>({ turn: 0, final: null });
-
-  // The AI advisor plays the same country, seed and objective, facing the same real events.
-  useEffect(() => {
-    let cancelled = false;
-    const initial = createGame(state.setup, { seed: state.seed, objective: state.objective, difficulty: state.difficulty });
-    const timer = setTimeout(() => {
-      autoplay(initial, 6, regionLeader, (turn) => !cancelled && setAi((a) => ({ ...a, turn }))).then((final) => !cancelled && setAi({ turn: 10, final }));
-    }, 400);
-    return () => { cancelled = true; clearTimeout(timer); };
-  }, [state]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     let cancelled = false;
@@ -68,7 +57,6 @@ export function Reveal({ state, rivals, regionLeader, onRestart, onReplay }: { s
     const impact = compareImpact(pathFromMetrics(years, state.metricHistory, cbr), historyPath);
     return { start, player, real, delta: historyDelta(start, player, real, state.objective), last, impact };
   }, [data, state]);
-  const aiDelta = useMemo(() => (ai.final && analysis ? historyDelta(analysis.start, ai.final.metrics, analysis.real, state.objective) : null), [ai.final, analysis, state.objective]);
   const finalStandings = useMemo(() => standingsFor(state, rivals), [state, rivals]);
 
   if (error) {
@@ -91,21 +79,22 @@ export function Reveal({ state, rivals, regionLeader, onRestart, onReplay }: { s
     <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6">
       <p className="animate-rise text-center text-xs font-semibold uppercase tracking-[0.35em] text-brass">{state.countryName} · {state.startYear}–{state.currentYear}</p>
       <h1 className="animate-sweep mt-3 text-center font-display text-5xl font-bold uppercase sm:text-7xl">{beat ? "You beat history" : "History wins this time"}</h1>
-      <div className="animate-rise mx-auto mt-8 grid max-w-4xl grid-cols-3 gap-4" style={{ animationDelay: "0.3s" }}>
+      <div className="animate-rise mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-4" style={{ animationDelay: "0.3s" }}>
         <div className="rounded-xl border border-sim/50 bg-sim/10 p-5 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-sim">Your timeline · simulated</p>
           <p className="mt-1 font-display text-6xl">{delta.playerTotal === null ? "–" : Math.round(delta.playerTotal)}</p>
-        </div>
-        <div className="rounded-xl border border-mech/50 bg-mech/10 p-5 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-mech">AI advisor&apos;s timeline</p>
-          {aiDelta?.playerTotal != null ? <p className="mt-1 font-display text-6xl">{Math.round(aiDelta.playerTotal)}</p> : <p className="mt-4 animate-pulse text-sm text-muted">AI is playing turn {Math.min(10, ai.turn + 1)} of 10…</p>}
         </div>
         <div className="rounded-xl border border-hist/50 bg-hist/10 p-5 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-hist">Real history · World Bank data</p>
           <p className="mt-1 font-display text-6xl">{delta.historicalTotal === null ? "–" : Math.round(delta.historicalTotal)}</p>
         </div>
       </div>
-      <p className="mt-3 text-center text-sm text-muted">{OBJECTIVES[state.objective].title} score, 0 to 100, where 50 means no change from {state.startYear}. Same formula for all three. The AI faced the same real events and dice, planning by simulation without seeing the future.</p>
+      <p className="mt-3 text-center text-sm text-muted">{OBJECTIVES[state.objective].title} score, 0 to 100, where 50 means no change from {state.startYear}. Same formula for both.</p>
+      {state.personalWealth > 0 && (
+        <p className="mx-auto mt-4 max-w-3xl rounded-lg border border-hist/40 bg-hist/10 p-3 text-center text-sm text-hist">
+          You left office with about ${Math.round(state.personalWealth)} million in hidden accounts, taken through {state.decisionHistory.filter((d) => POLICIES[d.policyId]?.enrichment).length} corrupt decisions. The impact ledger below shows who paid for it.
+        </p>
+      )}
       {rank > 0 && <p className="mt-2 text-center text-sm text-brass">Final regional rank: {rank} of {finalStandings.length} in {rivals?.regionName} ({finalStandings.filter((s) => s.influenced).length} rivals out-developed in {state.currentYear}).</p>}
       <div className="mx-auto mt-8 max-w-4xl"><ImpactLedger impact={impact} label={`Your simulated timeline versus what really happened in ${state.countryName}, ${state.startYear}–${state.currentYear}. Positive lives saved means fewer infant deaths than history recorded.`} /></div>
 
@@ -191,6 +180,10 @@ export function Reveal({ state, rivals, regionLeader, onRestart, onReplay }: { s
           );
         })}
       </div>
+
+      <Panel eyebrow="Twenty years in ten chapters" title="Your chronicle" className="mt-6">
+        <Chronicle state={state} real={data ? data.history : realSoFar} />
+      </Panel>
 
       <Panel eyebrow="Your reign" title="Decisions and events" className="mt-6">
         <ol className="grid gap-2 md:grid-cols-2">

@@ -61,6 +61,17 @@ export interface EventRecord {
   title: string;
   description: string;
   severity: number;
+  dice: [number, number];
+}
+
+/** A fictional political development (see politics.ts). Not real history. */
+export interface PoliticalRecord {
+  turn: number;
+  year: number;
+  id: string;
+  headline: string;
+  story: string;
+  mechanics: MechanicsDelta;
 }
 
 export interface Outcome {
@@ -84,6 +95,8 @@ export interface Reaction {
   dice: [number, number];
   /** Political capital from leading the region, if earned this turn. */
   regionBonus: number;
+  /** This turn's fictional political development. */
+  political: PoliticalRecord;
 }
 
 export interface GameState {
@@ -115,6 +128,7 @@ export interface GameState {
   lastOutcome: Outcome | null;
   lastReaction: Reaction | null;
   pendingModifiers: Modifiers;
-  /** Remaining AI advisor consultations. */
-  advisorUses: number;
+  politicalHistory: PoliticalRecord[];
+  /** Money the leader has secretly pocketed through corrupt choices, in millions of US dollars. */
+  personalWealth: number;
 }

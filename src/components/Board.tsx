@@ -1,7 +1,6 @@
 "use client";
 import { useMemo } from "react";
 import { formatValue } from "@/lib/format";
-import type { Advice } from "@/lib/game/advisor";
 import type { Impact } from "@/lib/game/impact";
 import type { GameState, Phase } from "@/lib/game/types";
 import { CONSTANTS } from "@/lib/game/rules";
@@ -125,70 +124,13 @@ export function RegionBoard({ state, rivals, rivalsError, countries }: { state: 
   );
 }
 
-export function SdgChips({ sdgs }: { sdgs?: number[] }) {
-  if (!sdgs?.length) return null;
+export function SdgChips({ sdgs, harms }: { sdgs?: number[]; harms?: number[] }) {
+  if (!sdgs?.length && !harms?.length) return null;
   return (
-    <span className="flex gap-1">
-      {sdgs.map((g) => <span key={g} title={`UN Sustainable Development Goal ${g}`} className="rounded bg-good/15 px-1.5 py-0.5 text-[9px] font-semibold text-good">SDG {g}</span>)}
+    <span className="flex flex-wrap gap-1">
+      {sdgs?.map((g) => <span key={g} title={`Advances UN Sustainable Development Goal ${g}`} className="rounded bg-good/15 px-1.5 py-0.5 text-[9px] font-semibold text-good">SDG {g}</span>)}
+      {harms?.map((g) => <span key={`h${g}`} title={`Undermines UN Sustainable Development Goal ${g}`} className="rounded bg-bad/15 px-1.5 py-0.5 text-[9px] font-semibold text-bad">Undermines SDG {g}</span>)}
     </span>
-  );
-}
-
-export function AdvisorPanel({ advice, busy, uses, onConsult, canConsult }: { advice: Advice | null; busy: boolean; uses: number; onConsult: () => void; canConsult: boolean }) {
-  const max = advice ? Math.max(...advice.options.map((o) => o.high)) : 100;
-  const min = advice ? Math.min(...advice.options.map((o) => o.low)) : 0;
-  const scale = (v: number) => ((v - min) / Math.max(1, max - min)) * 100;
-  return (
-    <div className="rounded-lg border border-sim/40 bg-sim/[0.06] p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sim">AI policy advisor</p>
-          <p className="text-xs text-muted">Simulates each option through to {"the end of your term"} before advising. {uses} consultation{uses === 1 ? "" : "s"} left.</p>
-        </div>
-        {!advice && (
-          <button onClick={onConsult} disabled={!canConsult || busy || uses <= 0} className="rounded-md border border-sim/60 px-3 py-1.5 text-sm text-sim transition hover:bg-sim/10 disabled:cursor-not-allowed disabled:opacity-40">
-            {busy ? "Simulating futures…" : uses > 0 ? "Consult the advisor" : "No consultations left"}
-          </button>
-        )}
-      </div>
-      {advice && (
-        <div className="mt-3 space-y-2">
-          <p className="text-sm text-parchment/90"><span className="text-sim">Recommendation: {advice.best.title}.</span> {advice.explanation}</p>
-          <div className="space-y-1.5">
-            {advice.options.map((o) => (
-              <div key={o.policyId} className="grid grid-cols-[150px_1fr_52px] items-center gap-2 text-xs">
-                <span className={`truncate ${o.policyId === advice.best.policyId ? "text-sim" : "text-muted"}`}>{o.title}</span>
-                <div className="relative h-3 rounded bg-white/5">
-                  <div className="absolute inset-y-1 rounded bg-sim/30" style={{ left: `${scale(o.low)}%`, width: `${Math.max(2, scale(o.high) - scale(o.low))}%` }} />
-                  <div className="absolute inset-y-0 w-1 rounded bg-sim" style={{ left: `calc(${scale(o.expectedScore)}% - 2px)` }} />
-                </div>
-                <span className={`text-right font-mono ${o.vsStay > 0.05 ? "text-good" : o.vsStay < -0.05 ? "text-bad" : "text-muted"}`} title={`Expected mission score ${o.expectedScore.toFixed(1)}`}>{o.policyId === "status_quo" ? "base" : (o.vsStay >= 0 ? "+" : "−") + Math.abs(o.vsStay).toFixed(1)}</span>
-              </div>
-            ))}
-          </div>
-          <NearTerm advice={advice} />
-          <p className="text-[10px] text-muted">Number: expected final mission score gained versus staying the course. Dot: average; bar: 10th to 90th percentile of simulated futures. The advisor does not know real future events or world conditions.</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function NearTerm({ advice }: { advice: Advice }) {
-  const stay = advice.options.find((o) => o.policyId === "status_quo");
-  if (!stay || advice.best.policyId === "status_quo") return null;
-  const rows = Object.entries(advice.best.nearTerm)
-    .map(([id, v]) => ({ id: id as keyof typeof INDICATORS, diff: (v ?? 0) - (stay.nearTerm[id as keyof typeof stay.nearTerm] ?? 0) }))
-    .filter((r) => Math.abs(r.diff) > 1e-3)
-    .sort((a, b) => Math.abs(b.diff) / (INDICATORS[b.id].scoreScale || 1) - Math.abs(a.diff) / (INDICATORS[a.id].scoreScale || 1))
-    .slice(0, 4);
-  if (!rows.length) return null;
-  return (
-    <p className="text-xs text-parchment/80">Expected in two years versus staying the course: {rows.map((r, i) => {
-      const def = INDICATORS[r.id];
-      const good = def.higherIsBetter === null ? null : (r.diff > 0) === def.higherIsBetter;
-      return <span key={r.id} className={good === null ? "" : good ? "text-good" : "text-bad"}>{i ? ", " : ""}{def.shortName.toLowerCase()} {r.diff > 0 ? "+" : "−"}{Math.abs(r.diff).toFixed(def.decimals > 1 ? 2 : 1)}</span>;
-    })}.</p>
   );
 }
 

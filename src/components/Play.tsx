@@ -1,15 +1,16 @@
 "use client";
-import { formatValue, signed } from "@/lib/format";
+import { signed } from "@/lib/format";
 import { OBJECTIVES, POLICIES } from "@/lib/game/rules";
 import { categoryScores, type Values } from "@/lib/game/scoring";
-import { briefing, canAfford, currentProblem, policyOptions } from "@/lib/game/simulation";
+import { briefing, canAfford, currentProblem, rankedOptions } from "@/lib/game/simulation";
 import type { GameState, MechanicsDelta } from "@/lib/game/types";
 import { CATEGORY_LABELS, INDICATORS, SCORE_CATEGORIES, type IndicatorId } from "@/lib/worldbank/indicators";
-import type { Advice } from "@/lib/game/advisor";
+import { chapterFor, type RealHistory } from "@/lib/game/story";
 import type { Impact } from "@/lib/game/impact";
 import type { CountryConfig } from "@/lib/worldbank/package";
 import type { RivalsPackage } from "@/lib/worldbank/rivals";
-import { AdvisorPanel, FortuneRoll, ImpactLedger, RegionBoard, SdgChips, StepTracker } from "./Board";
+import { FortuneRoll, ImpactLedger, RegionBoard, SdgChips, StepTracker } from "./Board";
+import { ChapterView, Chronicle } from "./Story";
 import { ATTRIBUTION, Button, Meter, Panel, StatCard } from "./ui";
 
 const HEADLINE: IndicatorId[] = ["population", "gdpPerCapita", "gdpGrowth", "lifeExpectancy", "infantMortality", "electricity", "education", "unemployment", "urban", "co2"];
@@ -58,19 +59,42 @@ function MechDelta({ delta }: { delta: MechanicsDelta }) {
   );
 }
 
+/** Harmful options wear the label of a respectable ministry, so nothing gives them away. */
+function officialCategory(category: string): string {
+  return category === "Corruption" ? "Infrastructure" : category === "Repression" ? "Governance" : category;
+}
+
+/** After enacting: what a harmful policy really did. Shown only once the choice is made. */
+function FinePrint({ state }: { state: GameState }) {
+  const last = state.decisionHistory[state.decisionHistory.length - 1];
+  const policy = last ? POLICIES[last.policyId] : undefined;
+  if (!policy?.harmful) return null;
+  return (
+    <div className="mt-4 rounded-md border border-bad/50 bg-bad/10 p-4">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-bad">The fine print</p>
+      <p className="mt-1 text-sm text-parchment/90">{policy.truth || "This policy served you and your allies more than your people."}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-2">
+        <SdgChips harms={policy.harms} />
+        {policy.enrichment ? <span className="rounded bg-hist/20 px-1.5 py-0.5 text-[10px] font-semibold text-hist">About ${Math.round(policy.enrichment)} million reached your private accounts</span> : null}
+      </div>
+    </div>
+  );
+}
+
 function hintColor(h: string) {
   return h.startsWith("+") ? "text-good" : "text-bad";
 }
 
-export function Dashboard({ state, onBeginDecision, onDecide, onReact, onNext, onHowItWorks, rivals, rivalsError, countries, advice, adviceBusy, onConsult, impact }: {
+export function Dashboard({ state, onBeginDecision, onDecide, onReact, onNext, onHowItWorks, rivals, rivalsError, countries, impact, real, realPending, realError, onRetryReal }: {
   state: GameState;
   rivals: RivalsPackage | null;
   rivalsError: string | null;
   countries: CountryConfig[];
-  advice: Advice | null;
-  adviceBusy: boolean;
-  onConsult: () => void;
   impact: Impact | null;
+  real: RealHistory | null;
+  realPending: boolean;
+  realError: string | null;
+  onRetryReal: () => void;
   onBeginDecision: () => void;
   onDecide: (policyId: string) => void;
   onReact: () => void;
@@ -98,11 +122,15 @@ export function Dashboard({ state, onBeginDecision, onDecide, onReact, onNext, o
         </div>
       </header>
 
-      <div className="mt-3 grid gap-3 rounded-xl border border-mech/30 bg-mech/[0.04] px-5 py-3 sm:grid-cols-[auto_1fr_1fr_1fr] sm:items-center">
+      <div className="mt-3 grid gap-3 rounded-xl border border-mech/30 bg-mech/[0.04] px-5 py-3 sm:grid-cols-[auto_1fr_1fr_1fr_auto] sm:items-center">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-mech">Game mechanics<br /><span className="font-normal normal-case tracking-normal text-muted">not World Bank data</span></p>
         <Meter label="Treasury" value={state.treasury} color="#d4a84b" hint="Money available for policies. Refills with tax revenue each turn." />
         <Meter label="Political capital" value={state.politicalCapital} color="#b58cf0" hint="Needed for major reforms. Regenerates slowly, faster when the public is satisfied." />
         <Meter label="Public satisfaction" value={state.satisfaction} color={state.satisfaction < 35 ? "#e36d5e" : "#6cc58a"} hint="Below 35 slows growth and political capital." />
+        <div className="min-w-[120px] text-right" title="Money you have secretly pocketed through corrupt choices. The more you take, the likelier a scandal.">
+          <p className="text-[11px] uppercase tracking-wider text-muted">Hidden fortune</p>
+          <p className={`font-display text-xl ${state.personalWealth > 0 ? "text-hist" : "text-muted"}`}>{state.personalWealth > 0 ? `$${Math.round(state.personalWealth)}M` : "None"}</p>
+        </div>
       </div>
 
       <div className="mt-3"><StepTracker phase={state.phase} /></div>
@@ -123,19 +151,19 @@ export function Dashboard({ state, onBeginDecision, onDecide, onReact, onNext, o
           {state.phase === "decision" && (
             <Panel eyebrow={`National problem · ${state.currentYear}`} title={problem.title}>
               <p className="max-w-3xl text-parchment/85">{problem.describe(state)}</p>
-              <p className="mt-1 text-sm text-muted">Deploy one policy. Exact results are unknown until you commit.</p>
-              <div className="mt-4"><AdvisorPanel advice={advice} busy={adviceBusy} uses={state.advisorUses} onConsult={onConsult} canConsult={state.phase === "decision"} /></div>
+              <p className="mt-1 text-sm text-muted">Your ministries propose the options that fit {state.countryName} best. Exact results are unknown until you commit.</p>
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {policyOptions(state).map((p) => {
+                {rankedOptions(state).map(({ policy: p, reason }) => {
                   const affordable = canAfford(state, p);
                   return (
-                    <button key={p.id} data-policy={p.id} disabled={!affordable} onClick={() => onDecide(p.id)} className={`group flex flex-col rounded-lg border bg-panel-2/80 p-4 text-left transition hover:border-brass disabled:cursor-not-allowed disabled:opacity-40 ${advice?.best.policyId === p.id ? "border-sim shadow-[0_0_0_1px_rgba(95,179,217,0.4)]" : "border-line"}`}>
+                    <button key={p.id} data-policy={p.id} data-harmful={p.harmful ? "true" : undefined} disabled={!affordable} onClick={() => onDecide(p.id)} className="group flex flex-col rounded-lg border border-line bg-panel-2/80 p-4 text-left transition hover:border-brass disabled:cursor-not-allowed disabled:opacity-40">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-[10px] uppercase tracking-[0.2em] text-brass/80">{p.category}</span>
+                        <span className="text-[10px] uppercase tracking-[0.2em] text-brass/80">{p.harmful ? officialCategory(p.category) : p.category}</span>
                         <span className="font-mono text-[11px] text-muted">{p.cost.treasury ? `−${p.cost.treasury} treasury` : "no cost"} · −{p.cost.politicalCapital} capital</span>
                       </div>
                       <p className="mt-1 font-display text-xl uppercase tracking-wide group-hover:text-brass">{p.title}</p>
-                      <div className="mt-1 flex flex-wrap items-center gap-2"><SdgChips sdgs={p.sdgs} />{advice?.best.policyId === p.id && <span className="rounded bg-sim/20 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-sim">AI pick</span>}</div>
+                      <div className="mt-1 flex flex-wrap items-center gap-2"><SdgChips sdgs={p.sdgs} /></div>
+                      {reason && <p className="mt-1 text-[11px] text-brass/90">Why here: {reason}</p>}
                       <p className="mt-1 text-sm text-muted">{p.description}</p>
                       <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-0.5 font-mono text-xs">
                         {Object.entries(p.hints).map(([k, h]) => (
@@ -168,33 +196,23 @@ export function Dashboard({ state, onBeginDecision, onDecide, onReact, onNext, o
                 </div>
               </div>
               {state.lastOutcome.riskMessage && <p className="mt-4 rounded-md border border-hist/40 bg-hist/10 p-3 text-sm text-hist">Setback: {state.lastOutcome.riskMessage}</p>}
+              <FinePrint state={state} />
               <div className="mt-5 flex justify-end"><Button onClick={onReact}>See how the world reacts</Button></div>
             </Panel>
           )}
-          {state.phase === "reaction" && state.lastReaction && (
-            <Panel eyebrow={`World reaction · ${state.currentYear - 2}–${state.currentYear}`} title={state.lastReaction.title}>
-              <FortuneRoll dice={state.lastReaction.dice} />
-              <p className="mt-3 text-parchment/85">{state.lastReaction.description}</p>
-              {state.lastReaction.regionBonus > 0 && <p className="mt-2 rounded-md border border-good/40 bg-good/10 p-3 text-sm text-good">Regional leadership: you out-develop most of your region. +{state.lastReaction.regionBonus} political capital.</p>}
-              {state.lastReaction.callbacks.map((c) => <p key={c} className="mt-2 rounded-md border border-sim/30 bg-sim/10 p-3 text-sm text-sim">{c}</p>)}
-              {state.lastReaction.crisis && <p className="mt-2 rounded-md border border-bad/40 bg-bad/10 p-3 text-sm text-bad">{state.lastReaction.crisis}</p>}
-              <p className="mt-4 text-[10px] uppercase tracking-[0.2em] text-muted">Two years later · simulated</p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                {state.lastReaction.changes.map((c) => {
-                  const def = INDICATORS[c.id];
-                  const d = c.after - c.before;
-                  const good = def.higherIsBetter === null ? null : (d > 0) === def.higherIsBetter;
-                  return (
-                    <div key={c.id} className="flex items-center justify-between rounded-md bg-panel-2/70 px-3 py-2 text-sm">
-                      <span className="text-muted">{def.shortName}</span>
-                      <span className="font-mono">{formatValue(c.id, c.before)} → <span className={Math.abs(d) < 1e-6 || good === null ? "text-parchment" : good ? "text-good" : "text-bad"}>{formatValue(c.id, c.after)}</span></span>
-                    </div>
-                  );
-                })}
-              </div>
-              <div className="mt-5 flex justify-end"><Button onClick={onNext}>{state.turn >= state.totalTurns ? "Reveal history" : `Advance to ${state.currentYear}`}</Button></div>
-            </Panel>
-          )}
+          {state.phase === "reaction" && state.lastReaction && (() => {
+            const chapter = chapterFor(state, state.turn, real);
+            return (
+              <Panel eyebrow={`Chapter ${state.turn} of ${state.totalTurns} · ${state.currentYear - 2}–${state.currentYear}`} title={state.lastReaction.title}>
+                <FortuneRoll dice={state.lastReaction.dice} />
+                {state.lastReaction.regionBonus > 0 && <p className="mt-2 rounded-md border border-good/40 bg-good/10 p-3 text-sm text-good">Regional leadership: you out-develop most of your region. +{state.lastReaction.regionBonus} political capital.</p>}
+                {state.lastReaction.callbacks.map((c) => <p key={c} className="mt-2 rounded-md border border-sim/30 bg-sim/10 p-3 text-sm text-sim">{c}</p>)}
+                {state.lastReaction.crisis && <p className="mt-2 rounded-md border border-bad/40 bg-bad/10 p-3 text-sm text-bad">{state.lastReaction.crisis}</p>}
+                {chapter && <div className="mt-4"><ChapterView chapter={chapter} realPending={realPending} realError={realError} onRetryReal={onRetryReal} /></div>}
+                <div className="mt-5 flex justify-end"><Button onClick={onNext}>{state.turn >= state.totalTurns ? "Reveal history" : `Advance to ${state.currentYear}`}</Button></div>
+              </Panel>
+            );
+          })()}
         </div>
 
         <Panel eyebrow={isStart ? "World Bank data" : "Your timeline"} title="Country indicators" className="self-start">
@@ -211,22 +229,8 @@ export function Dashboard({ state, onBeginDecision, onDecide, onReact, onNext, o
         <ImpactLedger impact={impact} label={isStart ? "Make your first decisions to see their human impact." : `Your policies versus staying the course every turn, same country, seed and world, ${state.startYear}–${state.currentYear}.`} />
       </div>
 
-      <Panel eyebrow="Record" title="Timeline" className="mt-3">
-        {state.decisionHistory.length === 0 ? <p className="text-sm text-muted">Your decisions and world events will appear here.</p> : (
-          <ol className="flex gap-3 overflow-x-auto pb-2">
-            {state.decisionHistory.map((d) => {
-              const e = state.eventHistory.find((ev) => ev.turn === d.turn);
-              return (
-                <li key={d.turn} className="min-w-[180px] rounded-lg border border-line bg-panel-2/60 p-3 text-xs">
-                  <p className="font-display text-base text-brass">{d.year}</p>
-                  <p className="mt-1 text-parchment">{POLICIES[d.policyId]?.title ?? d.policyTitle}</p>
-                  <p className="text-muted">for {d.problemTitle}</p>
-                  {e && <p className="mt-1 text-sim">World: {e.title}</p>}
-                </li>
-              );
-            })}
-          </ol>
-        )}
+      <Panel eyebrow="The story so far" title="Your chronicle" className="mt-3">
+        <Chronicle state={state} real={real} />
       </Panel>
       <p className="mt-4 text-center text-xs text-muted">{ATTRIBUTION} Simulated values are generated by the game&apos;s model.</p>
     </main>

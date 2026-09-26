@@ -45,8 +45,8 @@ export function Landing({ onStart, onHowItWorks }: { onStart: () => void; onHowI
         {[
           ["The board", "Every country in the World Bank's data. Your region is your battlefield; development is the only weapon."],
           ["Fortune dice", "Each turn the world rolls: slowdowns, commodity booms, droughts. Real world data sets the odds."],
-          ["AI advisor", "Consult an AI that simulates hundreds of futures before recommending a policy. Three consultations per game."],
-          ["The reveal", "See the lives your choices saved, then face the real history, and the AI's own attempt."],
+          ["High stakes", "Options tailored to your country, from mega-dams to IMF loans. Some pay off big; some backfire; some are not what they seem."],
+          ["Your story vs history", "After every decision, read what happened in your timeline and what really happened, chapter by chapter."],
         ].map(([t, d]) => (
           <div key={t} className="rounded-lg border border-line bg-panel/70 p-4 backdrop-blur-sm">
             <p className="font-display text-lg uppercase tracking-wide text-brass">{t}</p>

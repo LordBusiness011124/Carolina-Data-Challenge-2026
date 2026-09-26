@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { advise } from "@/lib/game/advisor";
 import { compareImpact, impactVsDoingNothing, pathFromMetrics } from "@/lib/game/impact";
 import { applyDecision, beginDecision, createGame, nextTurn, policyOptions, rollDice, worldReaction } from "@/lib/game/simulation";
 import { CONSTANTS, POLICIES } from "@/lib/game/rules";
@@ -50,26 +49,6 @@ describe("development index and standings", () => {
   });
 });
 
-describe("AI advisor", () => {
-  it("recommends an affordable option and is deterministic", () => {
-    const s = beginDecision(game());
-    const a = advise(s, 4), b = advise(s, 4);
-    expect(a).toEqual(b);
-    expect(policyOptions(s).map((p) => p.id)).toContain(a.best.policyId);
-    expect(a.options[0].expectedScore).toBeGreaterThanOrEqual(a.options[a.options.length - 1].expectedScore);
-  });
-  it("cannot see future world conditions", () => {
-    const s = beginDecision(game());
-    const altered = { ...s, setup: { ...s.setup, world: s.setup.world.map((w, i) => (i >= 1 ? { ...w, values: { ...w.values, growth: { ...w.values.growth!, value: -9 } } } : w)) } };
-    expect(advise(altered, 4)).toEqual(advise(s, 4));
-  });
-  it("does not use the real game seed for its rollouts", () => {
-    const a = advise(beginDecision(game("seed-a")), 4);
-    expect(a.rollouts).toBe(4);
-    expect(a.explanation).toMatch(/simulated futures/);
-  });
-});
-
 describe("impact ledger", () => {
   it("converts infant mortality and access gaps into people", () => {
     const years = [2000, 2002];
@@ -105,7 +84,8 @@ describe("impact ledger", () => {
 
 describe("policy metadata", () => {
   it("tags every real policy with at least one SDG except neutral fiscal moves", () => {
-    const untagged = Object.values(POLICIES).filter((p) => !p.sdgs?.length).map((p) => p.id);
+    const untagged = Object.values(POLICIES).filter((p) => !p.harmful && !p.sdgs?.length).map((p) => p.id);
+    for (const p of Object.values(POLICIES).filter((p) => p.harmful)) expect(p.harms?.length).toBeGreaterThan(0);
     expect(untagged.sort()).toEqual(["austerity", "status_quo"]);
   });
 });

@@ -2,7 +2,7 @@
 
 **A board game of global development. Choose any nation. Rewrite its future. Then discover what actually happened.**
 
-Beat History is a turn-based strategy board game built on real historical development data from the [World Bank Indicators API](https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation). Pick any country on a world map (187 of the 217 countries in the API have enough data), take office in a real year, and govern for 20 years. Your region is the board: out-develop your real-world neighbors to spread your influence, roll the fortune dice each turn, and consult an AI advisor that plans by simulating possible futures. At the end the game reveals the country's real World Bank trajectory, the AI's own attempt, and the lives your choices saved or lost: could you beat history?
+Beat History is a turn-based strategy board game built on real historical development data from the [World Bank Indicators API](https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation). Pick any country on a world map (187 of the 217 countries in the API have enough data), take office in a real year, and govern for 20 years. Your region is the board: out-develop your real-world neighbors to spread your influence, roll the fortune dice each turn, and choose from realistic, high-stakes policies tailored to your country, some of which are not what they seem. After every decision the game tells the story of what happened in your timeline and what actually happened in the real country, chapter by chapter. At the end it reveals the full real trajectory and the lives your choices saved or lost: could you beat history?
 
 Built for the **AI for Social Good** theme. You win by saving lives and extending electricity, schooling and incomes, never by conquest.
 
@@ -24,8 +24,8 @@ The theme borrows the feel of classic world-map strategy games but uses its own 
 
 ## AI for Social Good
 
-- **AI policy advisor.** Three times per game you can consult an AI planner. For every policy on offer it runs 16 Monte Carlo rollouts through the rest of your term using the game's deterministic model, then recommends the option with the best average mission score, shows the spread of outcomes and the expected two-year effects compared with staying the course. It cannot see the future: world conditions after the current year are frozen at current values, every rollout uses its own seed, and it never learns the real dice or events. No language model is used, and results are reproducible.
-- **AI versus you versus history.** At the reveal the same AI plays your country with your seed, objective and difficulty, facing the same real events, so you can compare three scores.
+- **Bad choices in disguise.** Every turn mixes one, sometimes two, harmful choices in among the genuine options, dressed up with respectable names and pitches: a Discretionary Development Fund (a slush fund), a Grand Presidential Palace and National Stadium (crony contracts), a Household Contribution Levy (a flat tax that hits the poorest), Streamline Public Services (cuts to clinics and schools), a National Unity Media Act (censorship), Cut Red Tape for Industry (pollution for donations), Central Bank Stimulus (printing money) and Strategic Resource Partnerships (selling forests and mines to cronies). Nothing marks them before choosing and their order is shuffled. After enacting, "the fine print" reveals what they really did, which Sustainable Development Goals they undermine and how much reached the leader's pocket; the simulation, the chronicle and the lives-saved ledger show the damage. Corrupt choices add to a hidden personal fortune, and the bigger it grows, the likelier a "leaked bank records" scandal.
+- **High-stakes reforms.** Alongside steady policies, the menu includes realistic big bets drawn from real policy debates: an IMF structural adjustment loan, removing fuel subsidies, a mega-dam, privatizing the state power company, nationalizing mines and oil, a special economic zone built on foreign loans, doubling the minimum wage, free universal primary education, redistributing large estates, a food export ban, a nuclear power plant and microloans for women. Each has a large potential payoff, a 25 to 40 percent chance of a serious setback, and effects that arrive over several turns. They are offered only where they fit the country's data: nationalization needs meaningful resource rents (NY.GDP.TOTL.RT.ZS), nuclear power is not offered to low-income economies, and an IMF program becomes likelier as the treasury empties.
 - **Impact ledger.** Indicator gaps become people: infant lives saved (difference in infant mortality × births), people with electricity (difference in access × population) and extra CO2 emitted (difference per person × population). During play you are compared with staying the course every turn; at the end, with real history. Births come from the real crude birth rate (SP.DYN.CBRT.IN). These are simulated estimates.
 - **SDG tags.** Every policy is tagged with the UN Sustainable Development Goals it mainly targets.
 
@@ -36,9 +36,9 @@ The theme borrows the feel of classic world-map strategy games but uses its own 
 3. **Ten turns of two years.** Each turn has five phases:
    1. *World briefing*: global and regional conditions from World Bank aggregates, plus your simulated domestic situation.
    2. *National problem*: chosen from your country's current simulated weaknesses.
-   3. *Decision*: four policies plus "Stay the Course". Each shows cost, qualitative hints (`+++` to `---`) and risk, but not exact results.
+   3. *Decision*: the four policies most relevant to your country (each problem has a pool of 5 to 7 candidates, ranked by the country's own data such as farming share, electricity access, income level and emissions, with a "why here" reason), plus "Stay the Course". Each shows cost, qualitative hints (`+++` to `---`) and risk, but not exact results.
    4. *Consequences*: immediate effects and delayed effects scheduled for later turns.
-   5. *World reaction*: an event whose likelihood depends on real world data and your economy's structure. The economy then runs for two years.
+   5. *World reaction and chapter*: an event whose likelihood depends on real world data and your economy's structure; the economy runs for two years; a fictional political development follows (an election every four years, whose result depends on public satisfaction, or protests, strikes, coalition demands, scandals and popular reforms). The chapter then tells your story and, beside it, **what actually happened** in the real country over the same two years, from World Bank data, with a verdict on where you are ahead or behind.
 4. **Final reveal.** Your simulated timeline against World Bank history, charts, the History Delta by category, and your biggest success and tradeoff.
 
 Game mechanics (treasury, political capital, public satisfaction) are shown in a separate purple bar marked "not World Bank data".
@@ -69,7 +69,9 @@ src/lib/game/rules.ts             All tunable constants, policies, problems, eve
 src/lib/game/simulation.ts        Deterministic engine: createGame, applyDecision, worldReaction, nextTurn
 src/lib/game/scoring.ts           Category scores, objective score, History Delta
 src/lib/game/rng.ts               Seeded random numbers
-src/lib/game/advisor.ts           AI advisor (Monte Carlo rollouts) and AI autoplay
+src/lib/game/relevance.ts         Ranks each problem's candidate policies for the country, with reasons
+src/lib/game/politics.ts          Fictional political storyline (elections, protests, scandals)
+src/lib/game/story.ts             Chronicle: your story and what actually happened, per turn
 src/lib/game/impact.ts            Impact ledger: lives saved, people with power, extra CO2
 src/lib/worldbank/rivals.ts       Development index and regional standings
 src/components/WorldMap.tsx       SVG world map (world-atlas shapes, d3-geo projection)
@@ -107,7 +109,7 @@ Key rules (all constants in `src/lib/game/rules.ts`):
 - **World events** are chosen by seeded weighted draw. Weights come from real world data (a fall in world GDP growth makes a slowdown likely; rising world trade makes trade expansion likely) and from the country's structure (trade, FDI and agriculture shares). Severity also scales with exposure. Events describe data-derived conditions and never claim named historical events.
 - **Seeds**: every random draw is keyed by seed, turn and purpose, so the same seed and the same decisions produce the same game.
 
-**Calibration.** `tests/calibration.ts` plays hundreds of random games per country against real data. Policy strength was tuned so that active play beats staying the course every turn by about 4 to 8 points of the 0–100 mission score. How hard it is to beat history depends on what really happened: in balance testing, random play beat history in about 23% of Vietnam games (1995–2015, a period of exceptional real progress), 62% of Brazil games, 92% of Ghana games and nearly all India games. Good choices and the advisor improve these odds.
+**Calibration.** `tests/calibration.ts` plays hundreds of random games per country against real data. Policy strength was tuned so that active play beats staying the course every turn by about 4 to 8 points of the 0–100 mission score. How hard it is to beat history depends on what really happened: in the latest balance run (200 random games each), random play beat history in 24% of Vietnam games (1995–2015), 99% of Ghana games (1991–2011) and none of the Brazil games (1990–2010, a period of strong real progress). Choosing options that fit the country improves these odds.
 
 ## Scoring
 
@@ -123,7 +125,8 @@ Scores measure progress against the chosen objective only. They make no claim th
 
 - Values labeled **World Bank** (amber) are real observations from the API, with their code and observation year.
 - Values labeled **Simulated** (blue) come from the game model. They are never World Bank observations, and the World Bank does not endorse them.
-- During play the browser receives only the country's data up to the start year (starting values, past trends) plus global and regional aggregates. The country's real future is requested only for the final reveal.
+- During play the browser receives only the country's data up to the start year (starting values, past trends) plus global and regional aggregates. After each turn, `/api/history` returns real values only up to the year just played, so real history unfolds one chapter at a time and later years stay hidden until they are reached.
+- The political storyline is fictional and labeled as such. The "what actually happened" text states only what the World Bank data shows and never invents real events.
 - Source and simulated data are separate types (`ResolvedValue` versus `SimulatedMetrics`).
 
 ## Indicators
@@ -148,6 +151,8 @@ Scores measure progress against the chosen objective only. They make no claim th
 | School enrollment | first with coverage of SE.PRM.ENRR, SE.PRM.NENR, SE.SEC.ENRR, SE.TER.ENRR |
 | Agriculture share (structure) | NV.AGR.TOTL.ZS |
 | Industry share (structure) | NV.IND.TOTL.ZS |
+| Natural resource rents (structure) | NY.GDP.TOTL.RT.ZS |
+| Birth rate (impact ledger) | SP.DYN.CBRT.IN |
 
 World context uses the `WLD` aggregate for GDP growth, trade, FDI, internet use and natural resource rents (NY.GDP.TOTL.RT.ZS), and the regional aggregate (EAS, LCN or SSF) for GDP growth.
 

@@ -4,6 +4,8 @@
 import { EDUCATION_CANDIDATES, INDICATOR_IDS, type IndicatorId } from "../worldbank/indicators";
 import type { StartPackage } from "../worldbank/package";
 import { CONSTANTS, EVENTS, FALLBACK_POLICY, POLICIES, PROBLEMS, type EventContext, type PolicyDef, type ProblemDef } from "./rules";
+import { politicalEvent } from "./politics";
+import { relevance, temptationFits } from "./relevance";
 import { rngFor, weightedPick } from "./rng";
 import type { ActiveEffect, Difficulty, GameState, MechanicsDelta, Modifiers, Objective, Reaction, SimulatedMetrics } from "./types";
 
@@ -51,7 +53,8 @@ export function createGame(setup: StartPackage, options: { seed: string; objecti
     lastOutcome: null,
     lastReaction: null,
     pendingModifiers: {},
-    advisorUses: CONSTANTS.advisorUses,
+    politicalHistory: [],
+    personalWealth: 0,
   };
   state.currentProblemId = chooseProblem(state).id;
   return state;
@@ -81,8 +84,35 @@ export function currentProblem(state: GameState): ProblemDef {
   return PROBLEMS.find((p) => p.id === state.currentProblemId) ?? chooseProblem(state);
 }
 
+/** Offered responses: the four candidates most relevant to this country, plus staying the course. */
+export function rankedOptions(state: GameState): { policy: PolicyDef; reason: string }[] {
+  const ranked = currentProblem(state).options
+    .map((id) => ({ policy: POLICIES[id], ...relevance(id, state) }))
+    .filter((o) => o.score > 0)
+    .sort((a, b) => b.score - a.score || a.policy.id.localeCompare(b.policy.id))
+    .slice(0, 4);
+  // Mixed in with the genuine options: one (sometimes two) harmful choices dressed up with flattering
+  // names and pitches. Nothing marks them before choosing; their true effects are revealed after.
+  const random = rngFor(state.seed, state.turn, "temptation");
+  const fitting = currentProblem(state).temptations.filter((id) => temptationFits(id, state));
+  const pool = fitting.length ? fitting : ["skim_funds", "crony_megaprojects"];
+  const disguised: { policy: PolicyDef; reason: string }[] = [];
+  const count = pool.length > 1 && random() < 0.35 ? 2 : pool.length ? 1 : 0;
+  for (let i = 0; i < count; i++) {
+    const id = pool.splice(Math.floor(random() * pool.length), 1)[0];
+    disguised.push({ policy: POLICIES[id], reason: POLICIES[id].pitch ?? "" });
+  }
+  const mixed = [...ranked.slice(0, 4 - Math.max(0, count - 1)).map((o) => ({ policy: o.policy, reason: o.reason })), ...disguised];
+  // Seeded shuffle so a disguised option's position gives nothing away.
+  for (let i = mixed.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [mixed[i], mixed[j]] = [mixed[j], mixed[i]];
+  }
+  return [...mixed, { policy: POLICIES[FALLBACK_POLICY], reason: "Keep your powder dry for a later turn" }];
+}
+
 export function policyOptions(state: GameState): PolicyDef[] {
-  return [...currentProblem(state).options, FALLBACK_POLICY].map((id) => POLICIES[id]);
+  return rankedOptions(state).map((o) => o.policy);
 }
 
 export function canAfford(state: GameState, policy: PolicyDef): boolean {
@@ -99,11 +129,12 @@ export function applyDecision(prev: GameState, policyId: string): GameState {
   if (prev.phase !== "decision") throw new Error("Not in decision phase");
   const policy = POLICIES[policyId];
   const problem = currentProblem(prev);
-  if (!policy || !(problem.options.includes(policyId) || policyId === FALLBACK_POLICY)) throw new Error("Policy not available this turn");
+  if (!policy || !policyOptions(prev).some((p) => p.id === policyId)) throw new Error("Policy not available this turn");
   if (!canAfford(prev, policy)) throw new Error("Not enough resources for this policy");
   const state: GameState = cloneState(prev);
   applyMechanics(state, { treasury: -policy.cost.treasury, politicalCapital: -policy.cost.politicalCapital });
   applyMechanics(state, policy.mechanics);
+  state.personalWealth += policy.enrichment ?? 0;
   // Effect strength: global scale x diminishing returns for repeats x seeded execution quality.
   const repeats = prev.decisionHistory.filter((d) => d.policyId === policyId).length;
   const [lo, hi] = CONSTANTS.executionRange;
@@ -131,7 +162,7 @@ export function applyDecision(prev: GameState, policyId: string): GameState {
     if (policy.risk.mechanics) applyMechanics(state, policy.risk.mechanics);
     if (policy.risk.modifiers) state.pendingModifiers = addModifiers(state.pendingModifiers, policy.risk.modifiers);
   }
-  state.decisionHistory.push({ turn: state.turn, year: state.currentYear, problemId: problem.id, problemTitle: problem.title, policyId, policyTitle: policy.title, riskTriggered });
+  state.decisionHistory.push({ turn: state.turn, year: state.currentYear, problemId: problem.id, problemTitle: problem.title, policyId: policy.id, policyTitle: policy.title, riskTriggered, });
   state.lastOutcome = {
     policyTitle: policy.title,
     mechanics: {
@@ -208,6 +239,12 @@ export function worldReaction(prev: GameState, options: { regionLeader?: boolean
     state.satisfaction + CONSTANTS.satisfactionPerGrowthPoint * (growth - anchor) + CONSTANTS.satisfactionPerUnemploymentPoint * unemploymentChange + (50 - state.satisfaction) * CONSTANTS.satisfactionReversion,
     0, 100,
   );
+  // This turn's fictional political development.
+  const politics = politicalEvent(state, state.decisionHistory[state.decisionHistory.length - 1]?.policyId ?? null);
+  applyMechanics(state, politics.mechanics);
+  const political = { turn: state.turn, year: state.currentYear + 2, ...politics };
+  state.politicalHistory.push(political);
+
   let crisis: string | null = null;
   if (state.treasury < 0) {
     crisis = "The treasury ran dry. Emergency borrowing kept the government running, but public anger rose.";
@@ -218,7 +255,7 @@ export function worldReaction(prev: GameState, options: { regionLeader?: boolean
 
   state.currentYear += 2;
   state.metricHistory.push({ year: state.currentYear, metrics: { ...state.metrics } });
-  state.eventHistory.push({ turn: state.turn, year: state.currentYear - 2, eventId: event.id, title: event.title, description: event.describe(context), severity });
+  state.eventHistory.push({ turn: state.turn, year: state.currentYear - 2, eventId: event.id, title: event.title, description: event.describe(context), severity, dice });
   state.lastReaction = {
     eventId: event.id,
     title: event.title,
@@ -232,6 +269,7 @@ export function worldReaction(prev: GameState, options: { regionLeader?: boolean
     crisis,
     dice,
     regionBonus,
+    political,
   } satisfies Reaction;
   state.pendingModifiers = {};
   state.activeEffects = state.activeEffects.filter((e) => e.endsTurn >= nextTurn);
