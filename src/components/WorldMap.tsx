@@ -17,6 +17,10 @@ const SHAPES: Shape[] = (feature(topology, topology.objects.countries) as Featur
   .filter((f) => f.properties.code && f.properties.code !== "ATA");
 const SHAPE_CODES = new Set(SHAPES.map((s) => s.properties.code));
 
+/** On clickable maps: a hovered country fills light, the chosen country fills darker. */
+const HOVER_FILL = "#ecd28e";
+const SELECTED_FILL = "#a9761f";
+
 export function WorldMap({ countries, fill, selected, onSelect, focus, height = 420, dim = false, labelFor }: {
   countries: CountryConfig[];
   fill: (code: string) => string;
@@ -60,11 +64,13 @@ export function WorldMap({ countries, fill, selected, onSelect, focus, height = 
           const code = s.properties.code;
           const playable = known.has(code);
           const isSelected = selected === code;
+          const interactive = playable && !!onSelect;
+          const shapeFill = !playable ? "#1a212b" : interactive && isSelected ? SELECTED_FILL : interactive && hover === code ? HOVER_FILL : fill(code);
           return (
             <path
               key={code + s.properties.name}
               d={path(s) ?? ""}
-              fill={playable ? fill(code) : "#1a212b"}
+              fill={shapeFill}
               stroke={isSelected ? "#f3d27a" : hover === code ? "#d4a84b" : "#0b0f14"}
               strokeWidth={isSelected ? 2 : 0.6}
               opacity={dim && !isSelected && !(focus ?? []).includes(code) ? 0.35 : 1}
@@ -77,11 +83,16 @@ export function WorldMap({ countries, fill, selected, onSelect, focus, height = 
             </path>
           );
         })}
+        {/* Redraw the hovered and selected countries on top so their full outline shows. */}
+        {onSelect && SHAPES.filter((s) => s.properties.code === selected || s.properties.code === hover).map((s) => (
+          <path key={`top-${s.properties.code}-${s.properties.name}`} d={path(s) ?? ""} pointerEvents="none"
+            fill={s.properties.code === selected ? SELECTED_FILL : HOVER_FILL} stroke={s.properties.code === selected ? "#f3d27a" : "#d4a84b"} strokeWidth={s.properties.code === selected ? 2 : 1.2} />
+        ))}
         {markers.map((c) => {
           const point = projection([c.longitude!, c.latitude!]);
           if (!point) return null;
           return (
-            <circle key={c.code} cx={point[0]} cy={point[1]} r={selected === c.code ? 5 : 3} fill={fill(c.code)} stroke={selected === c.code ? "#f3d27a" : "#0b0f14"} strokeWidth={1}
+            <circle key={c.code} cx={point[0]} cy={point[1]} r={selected === c.code ? 5 : hover === c.code ? 4 : 3} fill={onSelect && selected === c.code ? SELECTED_FILL : onSelect && hover === c.code ? HOVER_FILL : fill(c.code)} stroke={selected === c.code ? "#f3d27a" : "#0b0f14"} strokeWidth={1}
               className={onSelect ? "cursor-pointer" : ""} onMouseEnter={() => setHover(c.code)} onMouseLeave={() => setHover(null)} onClick={() => onSelect?.(c.code)}>
               <title>{c.name}</title>
             </circle>

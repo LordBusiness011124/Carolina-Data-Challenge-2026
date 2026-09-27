@@ -22,7 +22,6 @@ await page.waitForSelector("text=countries from the World Bank", { timeout: 6000
 await page.fill('input[aria-label="Search countries"]', names[country]);
 await page.getByRole("button", { name: names[country], exact: true }).click();
 await page.waitForSelector("text=Take office in", { timeout: 180000 });
-await page.fill("#seed", "judge-demo-1");
 await shot("2-setup");
 await page.getByRole("button", { name: "Take office" }).click();
 await page.waitForSelector("text=National briefing", { timeout: 180000 });

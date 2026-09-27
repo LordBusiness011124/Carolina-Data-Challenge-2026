@@ -117,8 +117,10 @@ export function Setup({ onConfirm, onBack, busy, error }: { onConfirm: (c: Setup
   const [year, setYear] = useState<number | null>(null);
   const [objective, setObjective] = useState<Objective>("balanced");
   const [difficulty, setDifficulty] = useState<Difficulty>("normal");
+  // The world seed is chosen automatically. It keeps each game reproducible (the same seed and
+  // decisions give the same dice and events) and lets "Replay" repeat a campaign exactly.
   // Setup only renders on the client (after the landing screen), so a random seed is safe here.
-  const [seed, setSeed] = useState(() => newSeed());
+  const [seed] = useState(() => newSeed());
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -175,7 +177,8 @@ export function Setup({ onConfirm, onBack, busy, error }: { onConfirm: (c: Setup
             <WorldMap countries={countries ?? []} fill={fill} selected={country} onSelect={pick} height={470} />
           )}
           <div className="flex flex-wrap gap-4 px-3 pb-2 text-[11px] text-muted">
-            <span><b className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-brass align-middle" />Selected</span>
+            <span><b className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-[#a9761f] align-middle" />Selected</span>
+            <span><b className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-[#ecd28e] align-middle" />Hover</span>
             <span><b className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-[#2f6b5c] align-middle" />Playable (checked)</span>
             <span><b className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-[#4a2a2f] align-middle" />Not enough data</span>
             <span><b className="mr-1 inline-block h-2.5 w-2.5 rounded-sm bg-[#34465a] align-middle" />Same region</span>
@@ -236,22 +239,20 @@ export function Setup({ onConfirm, onBack, busy, error }: { onConfirm: (c: Setup
             ))}
           </div>
         </Panel>
-        <Panel eyebrow="Rules" title="Difficulty and seed">
+        <Panel eyebrow="Rules" title="Difficulty">
           <div className="grid grid-cols-3 gap-2">
             {(["easy", "normal", "hard"] as Difficulty[]).map((d) => (
               <button key={d} onClick={() => setDifficulty(d)} className={`rounded-md border px-3 py-2 text-sm capitalize ${difficulty === d ? "border-brass bg-brass/15 text-brass" : "border-line text-muted hover:text-parchment"}`}>{d}</button>
             ))}
           </div>
-          <label className="mt-3 block text-[11px] uppercase tracking-wider text-muted" htmlFor="seed">World seed</label>
-          <input id="seed" value={seed} onChange={(e) => setSeed(e.target.value.slice(0, 40))} className="mt-1 w-full rounded-md border border-line bg-ink px-3 py-2 font-mono text-sm outline-none focus:border-brass" />
-          <p className="mt-1 text-xs text-muted">Same seed and decisions give the same dice and events.</p>
+          <p className="mt-3 text-xs text-muted">Easy starts you with more money, political capital and public support, and collects more tax each turn. Hard gives you less of each.</p>
         </Panel>
       </div>
 
       {error && <p className="mt-4 rounded-md border border-bad/40 bg-bad/10 p-3 text-sm text-bad">{error}</p>}
       <div className="mt-6 flex items-center justify-end gap-4">
         {selected && year && <p className="text-sm text-muted">{selected.name}, {year}–{year + 20} · {OBJECTIVES[objective].title}</p>}
-        <Button disabled={!year || !playable || busy || !seed.trim()} onClick={() => country && year && onConfirm({ country, year, objective, difficulty, seed: seed.trim() })} className="px-8 py-3 text-base">
+        <Button disabled={!year || !playable || busy} onClick={() => country && year && onConfirm({ country, year, objective, difficulty, seed })} className="px-8 py-3 text-base">
           {busy ? "Loading World Bank data…" : "Take office"}
         </Button>
       </div>

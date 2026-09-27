@@ -41,7 +41,7 @@ The theme borrows the feel of classic world-map strategy games but uses its own 
 
 ## How the game works
 
-1. **Setup.** Choose a country on the map or by search, a start year, a mission (Balanced Development, Economic Growth, Quality of Life, Green Development), a difficulty and a world seed. Start years are enabled only when the World Bank has enough real data at the start and 20 years later.
+1. **Setup.** Choose a country on the map or by search, a start year, a mission (Balanced Development, Economic Growth, Quality of Life, Green Development) and a difficulty. The world seed that drives dice and events is chosen automatically, so any game can be replayed exactly. Start years are enabled only when the World Bank has enough real data at the start and 20 years later.
 2. **National briefing.** The real starting conditions, fetched live. Click any statistic to see its indicator code, requested year and observation year.
 3. **Ten turns of two years.** Each turn has five phases:
    1. *World briefing*: global and regional conditions from World Bank aggregates, plus your simulated domestic situation.
@@ -52,6 +52,57 @@ The theme borrows the feel of classic world-map strategy games but uses its own 
 4. **Final reveal.** Your simulated timeline against World Bank history, charts, the History Delta by category, and your biggest success and tradeoff.
 
 Game mechanics (treasury, political capital, public satisfaction) are shown in a separate purple bar marked "not World Bank data".
+
+## Run the game on your computer
+
+The game runs locally in your web browser. It works on macOS, Windows and Linux and needs no accounts or API keys.
+
+### 1. Install the prerequisites
+
+- **Node.js 20.9 or newer** (includes npm). Download the LTS version from https://nodejs.org. Check it in a terminal with `node --version`.
+- **Git**, to download the code (https://git-scm.com). Or download the ZIP instead (see step 2).
+- An internet connection. The game loads live data from the World Bank Indicators API.
+
+### 2. Download the code
+
+With Git:
+
+```sh
+git clone https://github.com/LordBusiness011124/Carolina-Data-Challenge-2026.git
+cd Carolina-Data-Challenge-2026
+git checkout Game-remodeling
+```
+
+Without Git: open https://github.com/LordBusiness011124/Carolina-Data-Challenge-2026/tree/Game-remodeling, click **Code**, then **Download ZIP**, unzip it and open a terminal in the unzipped folder.
+
+### 3. Install and start
+
+```sh
+npm install
+npm run dev
+```
+
+`npm install` downloads the game's libraries and only needs to run once. When the terminal shows `Ready`, open **http://localhost:3000** in your browser.
+
+To stop the game, press `Ctrl+C` in the terminal. To play again later, open a terminal in the same folder and run `npm run dev`.
+
+### Faster version (optional)
+
+For the smoothest play, for example in a presentation, build an optimized version once and run it:
+
+```sh
+npm run build
+npm start
+```
+
+Then open http://localhost:3000 as before.
+
+### Troubleshooting
+
+- **Port 3000 is already in use:** run `npm run dev -- -p 3001` and open http://localhost:3001.
+- **The first country takes a few seconds to load:** the game is downloading that country's history from the World Bank. Later loads come from a local cache in the `.cache` folder.
+- **"Historical data could not be loaded":** check your internet connection and press Retry. The game never substitutes made-up data.
+- **`npm` is not recognized:** Node.js is not installed or the terminal was opened before installing it. Install Node.js, then open a new terminal.
 
 ## World Bank Indicators API usage
 
@@ -180,57 +231,6 @@ For each value:
 4. School enrollment falls back through approved alternative indicators.
 
 Missing data is never treated as zero. A start year is disabled when a required indicator lacks a real observation at the start or a score category lacks one 20 years later. For example, Vietnam's earliest playable year is 1995 because its electricity data starts in 1997.
-
-## Run the game on your computer
-
-The game runs locally in your web browser. It works on macOS, Windows and Linux and needs no accounts or API keys.
-
-### 1. Install the prerequisites
-
-- **Node.js 20.9 or newer** (includes npm). Download the LTS version from https://nodejs.org. Check it in a terminal with `node --version`.
-- **Git**, to download the code (https://git-scm.com). Or download the ZIP instead (see step 2).
-- An internet connection. The game loads live data from the World Bank Indicators API.
-
-### 2. Download the code
-
-With Git:
-
-```sh
-git clone https://github.com/LordBusiness011124/Carolina-Data-Challenge-2026.git
-cd Carolina-Data-Challenge-2026
-git checkout Game-remodeling
-```
-
-Without Git: open https://github.com/LordBusiness011124/Carolina-Data-Challenge-2026/tree/Game-remodeling, click **Code**, then **Download ZIP**, unzip it and open a terminal in the unzipped folder.
-
-### 3. Install and start
-
-```sh
-npm install
-npm run dev
-```
-
-`npm install` downloads the game's libraries and only needs to run once. When the terminal shows `Ready`, open **http://localhost:3000** in your browser.
-
-To stop the game, press `Ctrl+C` in the terminal. To play again later, open a terminal in the same folder and run `npm run dev`.
-
-### Faster version (optional)
-
-For the smoothest play, for example in a presentation, build an optimized version once and run it:
-
-```sh
-npm run build
-npm start
-```
-
-Then open http://localhost:3000 as before.
-
-### Troubleshooting
-
-- **Port 3000 is already in use:** run `npm run dev -- -p 3001` and open http://localhost:3001.
-- **The first country takes a few seconds to load:** the game is downloading that country's history from the World Bank. Later loads come from a local cache in the `.cache` folder.
-- **"Historical data could not be loaded":** check your internet connection and press Retry. The game never substitutes made-up data.
-- **`npm` is not recognized:** Node.js is not installed or the terminal was opened before installing it. Install Node.js, then open a new terminal.
 
 ## Tests
 
