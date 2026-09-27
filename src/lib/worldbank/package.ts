@@ -2,7 +2,7 @@
 // so they are unit-tested with fixtures and reused by the server routes.
 import { EDUCATION_CANDIDATES, INDICATORS, INDICATOR_IDS, SCORE_CATEGORIES, WORLD_INDICATORS, type IndicatorId, type WorldKey } from "./indicators";
 import type { SeriesMap } from "./normalize";
-import { averageAnnualChange, mean, pastPoints, resolveNearest, type ResolvedValue } from "./observations";
+import { mean, robustAnnualChange, pastPoints, resolveNearest, type ResolvedValue } from "./observations";
 
 export const TOTAL_TURNS = 10;
 export const YEARS_PER_TURN = 2;
@@ -107,7 +107,7 @@ const LOOKBACK = 8;
 export function computeBaselines(series: SeriesMap, start: number, educationCode: string): Baselines {
   const past = (id: IndicatorId) => pastPoints(series, codeFor(id, educationCode), start + 1, LOOKBACK);
   const growth = past("gdpGrowth").map((p) => p.value);
-  const infant = averageAnnualChange(past("infantMortality"), "percent");
+  const infant = robustAnnualChange(past("infantMortality"), "percent");
   const elec = past("electricity");
   let gapClosure: number | null = null;
   if (elec.length >= 2) {
@@ -117,16 +117,16 @@ export function computeBaselines(series: SeriesMap, start: number, educationCode
   }
   return {
     growthAvg: mean(growth),
-    popGrowthSlope: averageAnnualChange(past("popGrowth"), "difference"),
-    urbanSlope: averageAnnualChange(past("urban"), "difference"),
-    lifeSlope: averageAnnualChange(past("lifeExpectancy"), "difference"),
+    popGrowthSlope: robustAnnualChange(past("popGrowth"), "difference"),
+    urbanSlope: robustAnnualChange(past("urban"), "difference"),
+    lifeSlope: robustAnnualChange(past("lifeExpectancy"), "difference"),
     infantDeclinePct: infant === null ? null : -infant,
     electricityGapClosure: gapClosure,
     fdiAvg: mean(past("fdi").map((p) => p.value)),
     tradeAvg: mean(past("trade").map((p) => p.value)),
-    renewableSlope: averageAnnualChange(past("renewable"), "difference"),
-    femaleLaborSlope: averageAnnualChange(past("femaleLabor"), "difference"),
-    educationSlope: averageAnnualChange(past("education"), "difference"),
+    renewableSlope: robustAnnualChange(past("renewable"), "difference"),
+    femaleLaborSlope: robustAnnualChange(past("femaleLabor"), "difference"),
+    educationSlope: robustAnnualChange(past("education"), "difference"),
     lookbackYears: LOOKBACK,
   };
 }

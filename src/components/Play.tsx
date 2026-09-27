@@ -205,7 +205,7 @@ export function Dashboard({ state, onBeginDecision, onDecide, onReact, onNext, o
             const chapter = chapterFor(state, state.turn, real);
             return (
               <Panel eyebrow={`Chapter ${state.turn} of ${state.totalTurns} · ${state.currentYear - 2}–${state.currentYear}`} title={state.lastReaction.title}>
-                <FortuneRoll dice={state.lastReaction.dice} />
+                <FortuneRoll dice={state.lastReaction.dice} eventId={state.lastReaction.eventId} />
                 {state.lastReaction.regionBonus > 0 && <p className="mt-2 rounded-md border border-good/40 bg-good/10 p-3 text-sm text-good">Regional leadership: you out-develop most of your region. +{state.lastReaction.regionBonus} political capital.</p>}
                 {state.lastReaction.callbacks.map((c) => <p key={c} className="mt-2 rounded-md border border-sim/30 bg-sim/10 p-3 text-sm text-sim">{c}</p>)}
                 {state.lastReaction.crisis && <p className="mt-2 rounded-md border border-bad/40 bg-bad/10 p-3 text-sm text-bad">{state.lastReaction.crisis}</p>}

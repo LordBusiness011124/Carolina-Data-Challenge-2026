@@ -146,3 +146,17 @@ describe("no dead ends", () => {
     expect(applyDecision(s, "status_quo").phase).toBe("consequence");
   });
 });
+
+describe("school enrollment stays realistic", () => {
+  it("does not stop at exactly 100% or run away above it", () => {
+    for (const startValue of [70, 98, 102.5, 112]) {
+      const base = newGame(`edu-${startValue}`);
+      let s: GameState = { ...base, metrics: { ...base.metrics, education: startValue }, metricHistory: [{ year: 1995, metrics: { ...base.metrics, education: startValue } }] };
+      while (s.phase !== "finished") s = nextTurn(worldReaction(applyDecision(beginDecision(s), "status_quo")));
+      for (const h of s.metricHistory.slice(1)) {
+        expect(h.metrics.education).not.toBe(100);
+        expect(h.metrics.education!).toBeLessThan(112.5);
+      }
+    }
+  });
+});

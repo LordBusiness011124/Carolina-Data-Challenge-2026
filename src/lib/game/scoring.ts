@@ -19,6 +19,23 @@ export function indicatorChange(id: IndicatorId, start: number, end: number): nu
   return end - start;
 }
 
+/**
+ * Is value `a` better than value `b` for this indicator? Uses the same rule as the score:
+ * gross enrollment is better the closer it is to 100%; otherwise by the indicator's direction.
+ * Returns null when the indicator has no better direction.
+ */
+export function isBetter(id: IndicatorId, a: number, b: number): boolean | null {
+  const def = INDICATORS[id];
+  if (def.normalization === "towardTarget") return Math.abs(a - 100) < Math.abs(b - 100);
+  if (def.higherIsBetter === null) return null;
+  return (a > b) === def.higherIsBetter;
+}
+
+/** True when two values are too close to call a difference (under 1% of the value, or tiny). */
+export function roughlyEqual(a: number, b: number): boolean {
+  return Math.abs(a - b) < Math.max(0.05, Math.abs(b) * 0.01);
+}
+
 export function indicatorScore(id: IndicatorId, start: number | null | undefined, end: number | null | undefined): number | null {
   if (start === null || start === undefined || end === null || end === undefined) return null;
   const def = INDICATORS[id];

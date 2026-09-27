@@ -3,7 +3,7 @@ import { useMemo } from "react";
 import { formatValue } from "@/lib/format";
 import type { Impact } from "@/lib/game/impact";
 import type { GameState, Phase } from "@/lib/game/types";
-import { CONSTANTS } from "@/lib/game/rules";
+import { CONSTANTS, GOOD_EVENTS } from "@/lib/game/rules";
 import type { CountryConfig } from "@/lib/worldbank/package";
 import { developmentIndex, regionalStandings, type RivalsPackage, type Standing } from "@/lib/worldbank/rivals";
 import { INDICATORS } from "@/lib/worldbank/indicators";
@@ -45,7 +45,8 @@ export function Die({ value, delay = 0 }: { value: number; delay?: number }) {
   );
 }
 
-export function FortuneRoll({ dice }: { dice: [number, number] }) {
+export function FortuneRoll({ dice, eventId }: { dice: [number, number]; eventId: string }) {
+  const good = GOOD_EVENTS.has(eventId);
   const total = dice[0] + dice[1];
   const [lo, hi] = CONSTANTS.diceSeverityRange;
   const factor = lo + ((total - 2) / 10) * (hi - lo);
@@ -54,7 +55,7 @@ export function FortuneRoll({ dice }: { dice: [number, number] }) {
       <div className="flex gap-2"><Die value={dice[0]} /><Die value={dice[1]} delay={0.1} /></div>
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brass">Fortune roll · {total}</p>
-        <p className="text-sm text-parchment/85">{total >= 9 ? "The dice ran hot: this event hits harder than usual" : total <= 5 ? "The dice ran cold: this event lands softly" : "An ordinary roll"} ({factor.toFixed(2)}× strength).</p>
+        <p className="text-sm text-parchment/85">{total >= 9 ? (good ? "The dice ran hot: this good news is even better than usual" : "The dice ran hot: this event hits harder than usual") : total <= 5 ? (good ? "The dice ran cold: the boost is smaller than usual" : "The dice ran cold: this event lands softly") : "An ordinary roll"} ({factor.toFixed(2)}× strength).</p>
       </div>
     </div>
   );

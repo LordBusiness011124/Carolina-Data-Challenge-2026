@@ -71,6 +71,26 @@ export function averageAnnualChange(points: { year: number; value: number }[], m
   return (Math.pow(last.value / first.value, 1 / years) - 1) * 100;
 }
 
+/**
+ * Typical annual change: the median of the per-year change between consecutive observations.
+ * Unlike a first-to-last average, one statistical break in a series (for example South Africa's
+ * enrollment jumping from 81% to 105% in 1989 when coverage changed) cannot dominate the trend.
+ */
+export function robustAnnualChange(points: { year: number; value: number }[], mode: "difference" | "percent"): number | null {
+  const rates: number[] = [];
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1], b = points[i];
+    const years = b.year - a.year;
+    if (years <= 0) continue;
+    if (mode === "difference") rates.push((b.value - a.value) / years);
+    else if (a.value > 0 && b.value > 0) rates.push((Math.pow(b.value / a.value, 1 / years) - 1) * 100);
+  }
+  if (!rates.length) return null;
+  rates.sort((x, y) => x - y);
+  const mid = Math.floor(rates.length / 2);
+  return rates.length % 2 ? rates[mid] : (rates[mid - 1] + rates[mid]) / 2;
+}
+
 export function mean(values: number[]): number | null {
   return values.length ? values.reduce((a, b) => a + b, 0) / values.length : null;
 }

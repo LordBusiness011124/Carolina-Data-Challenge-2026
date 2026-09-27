@@ -4,7 +4,8 @@
 import { formatValue } from "../format";
 import { INDICATORS, type IndicatorId } from "../worldbank/indicators";
 import type { ResolvedValue } from "../worldbank/observations";
-import { POLICIES } from "./rules";
+import { GOOD_EVENTS, POLICIES } from "./rules";
+import { isBetter, roughlyEqual } from "./scoring";
 import type { GameState, SimulatedMetrics } from "./types";
 
 export type RealHistory = Partial<Record<IndicatorId, (ResolvedValue | null)[]>>;
@@ -21,6 +22,8 @@ export interface Chapter {
   real: string | null;
   verdict: string | null;
   comparison: { id: IndicatorId; you: number; real: number; ahead: boolean }[];
+  /** True when school enrollment is a gross rate, where values above 100% mean over-age pupils. */
+  grossEnrollment: boolean;
 }
 
 /** Lower-case an indicator name for use mid-sentence, keeping acronyms such as GDP and CO2. */
@@ -71,7 +74,9 @@ export function chapterFor(state: GameState, turn: number, real: RealHistory | n
   const risk = decision.riskTriggered && policy?.risk ? ` It did not all go to plan: ${policy.risk.description.charAt(0).toLowerCase()}${policy.risk.description.slice(1)}` : "";
 
   const dice = event.dice[0] + event.dice[1];
-  const world = `${event.title}. ${event.description} The fortune dice rolled ${dice}${dice >= 9 ? ", so it hit hard" : dice <= 5 ? ", softening the blow" : ""}.`;
+  const good = GOOD_EVENTS.has(event.eventId);
+  const luck = dice >= 9 ? (good ? ", so the boost was bigger than usual" : ", so it hit hard") : dice <= 5 ? (good ? ", so the boost was modest" : ", softening the blow") : "";
+  const world = event.eventId === "calm" ? `${event.title}. ${event.description}` : `${event.title}. ${event.description} The fortune dice rolled ${dice}${luck}.`;
 
   const yours = sentence(STORY_INDICATORS.map((id) => change(id, before[id], after[id])));
   const realBefore = (id: IndicatorId) => real?.[id]?.[turn - 1]?.value;
@@ -80,9 +85,10 @@ export function chapterFor(state: GameState, turn: number, real: RealHistory | n
   const realText = hasReal ? sentence(STORY_INDICATORS.map((id) => change(id, realBefore(id), realAfter(id)))) : null;
 
   const comparison = STORY_INDICATORS.flatMap((id) => {
-    const you = after[id], r = realAfter(id), def = INDICATORS[id];
-    if (you === undefined || r == null || def.higherIsBetter === null || Math.abs(you - r) < Math.max(0.05, Math.abs(r) * 0.01)) return [];
-    return [{ id, you, real: r, ahead: (you > r) === def.higherIsBetter }];
+    const you = after[id], r = realAfter(id);
+    if (you === undefined || r == null || roughlyEqual(you, r)) return [];
+    const ahead = isBetter(id, you, r);
+    return ahead === null ? [] : [{ id, you, real: r, ahead }];
   });
   const ahead = comparison.filter((c) => c.ahead).map((c) => inSentence(INDICATORS[c.id].shortName));
   const behind = comparison.filter((c) => !c.ahead).map((c) => inSentence(INDICATORS[c.id].shortName));
@@ -109,5 +115,6 @@ export function chapterFor(state: GameState, turn: number, real: RealHistory | n
     real: realText ? `In the real ${state.countryName}, ${fromYear}–${toYear} (World Bank data): ${inSentence(realText)}` : null,
     verdict,
     comparison,
+    grossEnrollment: state.setup.educationCode.endsWith("ENRR"),
   };
 }

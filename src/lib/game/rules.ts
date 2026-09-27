@@ -534,6 +534,9 @@ export interface EventDef {
 
 const dGrowth = (c: EventContext) => (c.worldGrowth !== null && c.worldGrowthPrev !== null ? c.worldGrowth - c.worldGrowthPrev : 0);
 
+/** Events that help the country. Dice amplify their benefit instead of their damage. */
+export const GOOD_EVENTS = new Set(["global_boom", "commodity_boom", "fdi_opportunity", "trade_expansion", "tech_boom", "calm"]);
+
 export const EVENTS: EventDef[] = [
   { id: "global_slowdown", title: "Global Slowdown", weight: (c) => Math.max(0, -dGrowth(c)) * 2 + ((c.worldGrowth ?? 3) < 2 ? 2.5 : 0), severity: (c) => 0.5 + c.tradeExposure,
     describe: (c) => `World GDP growth fell to ${(c.worldGrowth ?? 0).toFixed(1)}%. Export orders are drying up.`, modifiers: { growthPP: -1.2, fdiTarget: -0.8, unemploymentPP: 0.3 }, mechanics: { satisfaction: -4, treasury: -3 } },

@@ -364,14 +364,29 @@ export function stepYear(state: GameState, mod: Modifiers, worldGrowth: number |
     const change = CONSTANTS.co2IncomeElasticity * (growth - popGrowth) + (m.co2 < 3 ? CONSTANTS.co2TransitionGrowth : 0) + (mod.co2Intensity ?? 0) - 0.5 * renewableChange;
     m.co2 = clamp(m.co2 * (1 + clamp(change, -15, 20) / 100), 0.02, 40);
   }
-  if (m.unemployment !== undefined) m.unemployment = clamp(m.unemployment - 0.12 * (growth - anchor) + (mod.unemploymentPP ?? 0), 1, 35);
+  if (m.unemployment !== undefined) {
+    // Falls slow down as unemployment nears its floor, so it never sticks at exactly 1%.
+    const change = -0.12 * (growth - anchor) + (mod.unemploymentPP ?? 0);
+    const damped = change < 0 ? change * Math.min(1, Math.max(0, (m.unemployment - 1) / 3)) : change;
+    m.unemployment = clamp(m.unemployment + damped, 1, 35);
+  }
   if (m.femaleLabor !== undefined) m.femaleLabor = clamp(m.femaleLabor + clamp(pick(b.femaleLaborSlope, 0), -0.5, 0.5) + (mod.femaleLaborGain ?? 0), 5, 90);
   if (m.education !== undefined) {
     const cap = EDUCATION_CANDIDATES.find((c) => c.code === state.setup.educationCode)?.cap ?? 110;
-    // Progress means moving toward full, on-time enrollment (100%). Above 100%, gross enrollment
-    // falls as over-age and repeating pupils decline, so progress moves it down toward 100.
-    const progress = Math.max(0, clamp(pick(b.educationSlope, 0.3), -1, 2)) + (mod.educationGain ?? 0);
-    const next = m.education < 100 ? Math.min(100, m.education + progress) : Math.max(100, m.education - progress * 0.6);
+    // The pre-start trend continues in either direction (enrollment can fall, as it did in South
+    // Africa in the late 1990s). Policy gains move enrollment toward full, on-time enrollment (100%):
+    // up from below, and down from above as over-age and repeating pupils decline. Gains shrink
+    // near 100% so the value approaches it gradually instead of stopping at exactly 100.
+    const e = m.education;
+    let trend = CONSTANTS.trendPersistence * clamp(pick(b.educationSlope, 0.3), -1.5, 2);
+    // Gross enrollment cannot keep rising far above 100%: upward trends fade above 100 and the
+    // over-age share slowly shrinks, pulling the rate back toward 100%.
+    if (e > 100) trend = (trend > 0 ? trend * Math.max(0, 1 - (e - 100) / 8) : trend) - 0.04 * (e - 100);
+    const gain = mod.educationGain ?? 0;
+    let next = e + trend;
+    if (gain < 0) next += gain;
+    else if (e < 100) next += gain * Math.min(1, (100 - e) / 15 + 0.05);
+    else next -= gain * 0.6 * Math.min(1, (e - 100) / 10);
     m.education = clamp(next, 0, cap);
   }
   if (m.agriculture !== undefined) m.agriculture = clamp(m.agriculture * (1 - 0.004 * Math.max(0, growth)), 1, 80);

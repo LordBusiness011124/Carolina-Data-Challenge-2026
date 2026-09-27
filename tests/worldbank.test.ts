@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { parsePage, toSeries, WorldBankError } from "@/lib/worldbank/normalize";
-import { resolveNearest, averageAnnualChange } from "@/lib/worldbank/observations";
+import { resolveNearest, averageAnnualChange, robustAnnualChange } from "@/lib/worldbank/observations";
 import { buildStartPackage, buildRevealPackage, checkStartYear } from "@/lib/worldbank/package";
 import { fixtureSeries, fixtureWorld, TEST_COUNTRY } from "./fixtures/series";
 
@@ -58,6 +58,13 @@ describe("nearest-observation rule", () => {
   it("computes past trends only from available points", () => {
     expect(averageAnnualChange([{ year: 1990, value: 10 }, { year: 1995, value: 20 }], "difference")).toBe(2);
     expect(averageAnnualChange([{ year: 1990, value: 10 }], "difference")).toBeNull();
+  });
+  it("ignores a single statistical break when measuring a trend", () => {
+    // South Africa, primary gross enrollment (SE.PRM.ENRR), real World Bank values 1987-1994.
+    const zaf = [[1987, 80.4], [1988, 80.8], [1989, 105.3], [1990, 104.7], [1991, 103.9], [1994, 102.5]].map(([year, value]) => ({ year, value }));
+    expect(averageAnnualChange(zaf, "difference")!).toBeGreaterThan(3);
+    expect(robustAnnualChange(zaf, "difference")!).toBeLessThan(0);
+    expect(robustAnnualChange([{ year: 1990, value: 10 }], "difference")).toBeNull();
   });
 });
 

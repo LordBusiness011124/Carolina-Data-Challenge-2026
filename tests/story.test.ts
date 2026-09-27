@@ -170,3 +170,16 @@ describe("greed and bad governance", () => {
     expect(chapter.decision).toMatch(/million quietly found its way into your private accounts/);
   });
 });
+
+describe("event wording", () => {
+  it("never says good news 'hit hard'", () => {
+    for (let i = 0; i < 300; i++) {
+      const s = worldReaction(applyDecision(beginDecision(game(`words-${i}`)), "status_quo"));
+      const e = s.eventHistory[0];
+      const text = chapterFor(s, 1, null)!.world;
+      if (["global_boom", "commodity_boom", "fdi_opportunity", "trade_expansion", "tech_boom", "calm"].includes(e.eventId)) {
+        expect(text).not.toMatch(/hit hard|softening the blow/);
+      }
+    }
+  });
+});

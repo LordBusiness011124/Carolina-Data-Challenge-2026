@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CartesianGrid, Legend, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { formatValue, signed } from "@/lib/format";
 import { OBJECTIVES, POLICIES } from "@/lib/game/rules";
-import { historyDelta, type Values } from "@/lib/game/scoring";
+import { historyDelta, isBetter, roughlyEqual, type Values } from "@/lib/game/scoring";
 import type { GameState } from "@/lib/game/types";
 import { CATEGORY_LABELS, INDICATORS, SCORE_CATEGORIES, type IndicatorId } from "@/lib/worldbank/indicators";
 import type { RevealPackage } from "@/lib/worldbank/package";
@@ -174,7 +174,7 @@ export function Reveal({ state, rivals, realSoFar, onRestart, onReplay }: { stat
           const r = data.history[id][last];
           const p = player[id];
           const def = INDICATORS[id];
-          const better = r && p !== undefined && p !== null && def.higherIsBetter !== null ? (p > r.value) === def.higherIsBetter : null;
+          const better = r && p !== undefined && p !== null && !roughlyEqual(p, r.value) ? isBetter(id, p, r.value) : null;
           return (
             <div key={id} className="rounded-xl border border-line bg-panel/80 p-4">
               <p className="text-[11px] uppercase tracking-wider text-muted">{def.shortName}</p>

@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, type ReactNode } from "react";
 import { formatValue } from "@/lib/format";
+import { isBetter } from "@/lib/game/scoring";
 import { INDICATORS, type IndicatorId } from "@/lib/worldbank/indicators";
 import type { ResolvedValue } from "@/lib/worldbank/observations";
 
@@ -60,7 +61,7 @@ export function StatCard({ id, value, real, simulated, previous }: { id: Indicat
   const [open, setOpen] = useState(false);
   const def = INDICATORS[id];
   const delta = previous !== undefined && value !== undefined ? value - previous : null;
-  const good = delta === null || def.higherIsBetter === null ? null : (delta > 0) === def.higherIsBetter;
+  const good = delta === null || value === undefined || previous === undefined ? null : isBetter(id, value, previous);
   const moved = delta !== null && Math.abs(delta) > Math.abs(previous ?? 1) * 0.002;
   return (
     <button onClick={() => setOpen((o) => !o)} className="group w-full rounded-lg border border-line bg-panel-2/70 p-3 text-left transition hover:border-brass/50" aria-expanded={open}>

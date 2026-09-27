@@ -149,7 +149,8 @@ Each simulated year:
 
 ```
 new value = previous simulated value
-          + the country's trend in the 8 years before the start (past data only, partly persisting)
+          + the country's trend in the 8 years before the start (past data only, partly persisting;
+            measured as the median year-to-year change, so one statistical break cannot dominate)
           + effects of this turn's policy
           + delayed effects of earlier policies
           + this turn's world event
@@ -177,6 +178,7 @@ Key rules (all constants in `src/lib/game/rules.ts`):
 - Indicator score = `50 + 50 × tanh(change ÷ scale)`, so 50 means no change from the start year.
 - Change is `ln(end ÷ start)` for GDP per capita, infant mortality and CO2; the share of the remaining gap closed for electricity; distance from 100% for school enrollment (gross enrollment above 100% reflects over-age and repeating pupils); and the plain difference for the rest. Direction is flipped where lower is better.
 - Categories: **Economy** (GDP per capita, unemployment, FDI), **Health** (life expectancy, infant mortality), **Education** (enrollment, female labor participation), **Infrastructure** (electricity, internet), **Sustainability** (CO2 per person, renewable share). Each averages the indicators that have data.
+- Every "better" or "worse" label in the game uses the same rule as the score: lower is better for infant mortality, unemployment and emissions; higher is better for income, life expectancy, electricity and female labor participation; and gross school enrollment is better the closer it is to 100%, because rates above 100% count over-age and repeating pupils.
 - The objective weights the categories (Balanced 20% each; Growth weights Economy 50%; Quality of Life weights Health 40% and Education 30%; Green weights Sustainability 40%).
 - **History Delta** scores the real end values from the same start with the same formulas, using only indicators with a real end-year observation on both sides. Biggest success and tradeoff are the indicators with the largest positive and negative score gaps.
 

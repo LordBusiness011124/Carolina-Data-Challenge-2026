@@ -36,11 +36,22 @@ export function ChapterView({ chapter, realPending, realError, onRetryReal }: { 
         <p className="text-sm text-parchment/85">{chapter.politics.story}</p>
       </section>
       {chapter.comparison.length > 0 && (
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <p className="text-[11px] text-muted">
+          In {chapter.toYear}: <span className="text-sim">your timeline</span> vs <span className="text-hist">real history</span>. &quot;Better&quot; means better for people: lower infant mortality, unemployment and emissions; higher income, life expectancy and electricity.
+          {chapter.grossEnrollment && chapter.comparison.some((c) => c.id === "education") && " School enrollment is a gross rate: above 100% means over-age or repeating pupils, so closer to 100% is better."}
+        </p>
+      )}
+      {chapter.comparison.length > 0 && (
+        <div className="grid gap-2 sm:grid-cols-2">
           {chapter.comparison.map((c) => (
             <div key={c.id} className="flex items-center justify-between rounded-md bg-panel-2/70 px-3 py-2 text-xs">
               <span className="text-muted">{INDICATORS[c.id].shortName}</span>
-              <span className="font-mono"><span className="text-sim">{formatValue(c.id, c.you)}</span> vs <span className="text-hist">{formatValue(c.id, c.real)}</span> <span className={c.ahead ? "text-good" : "text-bad"}>{c.ahead ? "▲" : "▼"}</span></span>
+              <span className="flex items-center gap-2 font-mono">
+                <span title="Your timeline (simulated)" className="whitespace-nowrap text-sim">{formatValue(c.id, c.you)}</span>
+                <span className="text-muted">vs</span>
+                <span title="Real history (World Bank)" className="whitespace-nowrap text-hist">{formatValue(c.id, c.real)}</span>
+                <span className={`rounded px-1.5 py-0.5 font-sans text-[10px] font-semibold uppercase tracking-wider ${c.ahead ? "bg-good/15 text-good" : "bg-bad/15 text-bad"}`}>{c.ahead ? "Better" : "Worse"}</span>
+              </span>
             </div>
           ))}
         </div>

@@ -3,7 +3,7 @@ import { chromium } from "playwright-core";
 import { mkdirSync } from "node:fs";
 const BASE = process.env.BASE_URL || "http://localhost:3100";
 const country = process.argv[2] || "VNM";
-const names = { VNM: "Viet Nam", BRA: "Brazil", GHA: "Ghana", IND: "India", KEN: "Kenya", DEU: "Germany", PER: "Peru", ETH: "Ethiopia", NGA: "Nigeria" };
+const names = { VNM: "Viet Nam", BRA: "Brazil", GHA: "Ghana", IND: "India", KEN: "Kenya", DEU: "Germany", PER: "Peru", ETH: "Ethiopia", NGA: "Nigeria", ZAF: "South Africa" };
 mkdirSync("output", { recursive: true });
 const browser = await chromium.launch({ channel: "chrome" });
 const page = await browser.newPage({ viewport: { width: Number(process.env.WIDTH || 1440), height: 900 } });
