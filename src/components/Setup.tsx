@@ -24,28 +24,68 @@ export function useCountries() {
 
 const OBJECTIVE_ICON: Record<Objective, string> = { balanced: "⚖", growth: "⬈", quality: "✚", green: "❦" };
 
+type Progress = { id: string; code: string; name: string; from: { year: number; value: number }; to: { year: number; value: number } };
+
+/** Live World Bank evidence that humanity has solved hard problems before. */
+function WorldProgress() {
+  const [progress, setProgress] = useState<Progress[] | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/progress")
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error("unavailable"))))
+      .then((d: { progress: Progress[] }) => !cancelled && setProgress(d.progress))
+      .catch(() => !cancelled && setProgress([]));
+    return () => { cancelled = true; };
+  }, []);
+  if (!progress?.length) return null;
+  const line = (p: Progress) => {
+    if (p.id === "infantMortality") return { big: `${Math.round((1 - p.to.value / p.from.value) * 100)}% fewer`, text: `babies dying in their first year: ${p.from.value.toFixed(0)} → ${p.to.value.toFixed(0)} per 1,000 births` };
+    if (p.id === "lifeExpectancy") return { big: `+${(p.to.value - p.from.value).toFixed(1)} years`, text: `of life for the average person: ${p.from.value.toFixed(1)} → ${p.to.value.toFixed(1)}` };
+    return { big: `${p.from.value.toFixed(0)}% → ${p.to.value.toFixed(0)}%`, text: "of people with electricity" };
+  };
+  return (
+    <section className="animate-rise relative mt-12 w-full max-w-5xl rounded-2xl border border-good/30 bg-good/[0.06] p-6 text-left" style={{ animationDelay: "0.6s" }}>
+      <p className="text-center text-[11px] font-semibold uppercase tracking-[0.3em] text-good">Proof that change is possible · the whole world, World Bank data</p>
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        {progress.map((p) => {
+          const l = line(p);
+          return (
+            <div key={p.id} className="rounded-lg bg-panel/60 p-4 text-center">
+              <p className="font-display text-3xl text-good">{l.big}</p>
+              <p className="mt-1 text-sm text-parchment/85">{l.text}</p>
+              <p className="mt-1 font-mono text-[10px] text-muted">World Bank · {p.code} · {p.from.year} and {p.to.year}</p>
+            </div>
+          );
+        })}
+      </div>
+      <p className="mt-4 text-center text-sm text-parchment/85">None of this happened by accident. It happened because people made choices: to vaccinate, to build, to educate, to connect.</p>
+    </section>
+  );
+}
+
 export function Landing({ onStart, onHowItWorks }: { onStart: () => void; onHowItWorks: () => void }) {
   return (
     <main className="relative flex flex-1 flex-col items-center overflow-hidden px-6 pb-16 pt-14 text-center">
       <div className="pointer-events-none absolute inset-x-0 top-24 mx-auto max-w-6xl opacity-40 [mask-image:radial-gradient(ellipse_at_center,black_35%,transparent_75%)]">
         <WorldMap countries={[]} fill={() => "#1a212b"} height={480} />
       </div>
-      <p className="animate-rise relative text-xs font-semibold uppercase tracking-[0.35em] text-brass/80">A board game of global development · AI for Social Good</p>
-      <h1 className="animate-sweep relative mt-5 font-display text-6xl font-bold uppercase text-parchment sm:text-8xl">Beat History</h1>
-      <div className="animate-rise relative mt-6 space-y-1 text-lg text-parchment/85 sm:text-xl" style={{ animationDelay: "0.3s" }}>
-        <p>Choose any nation on Earth. Take office in a real year.</p>
-        <p>Outpace your region on health, wealth and power for all.</p>
-        <p className="text-brass">Win the world by saving lives, not taking territory.</p>
+      <p className="animate-rise relative text-xs font-semibold uppercase tracking-[0.35em] text-brass/80">A strategy game of global development · AI for Social Good</p>
+      <h1 className="animate-sweep relative mt-5 font-display text-5xl font-bold uppercase leading-tight text-parchment sm:text-7xl">Humanity&apos;s Next Move</h1>
+      <div className="animate-rise relative mt-6 max-w-3xl space-y-3 text-lg text-parchment/85 sm:text-xl" style={{ animationDelay: "0.3s" }}>
+        <p>Poverty. Disease. Climate change. The world&apos;s problems can feel so big that it seems nothing we do could matter.</p>
+        <p className="font-display text-2xl uppercase tracking-wide text-brass sm:text-3xl">It is possible. We can make change.</p>
+        <p className="text-base text-parchment/75">Lead any nation on Earth through twenty real years. Make the hard calls, face the setbacks, and see how many lives your choices can change.</p>
       </div>
-      <div className="animate-rise relative mt-10 flex flex-wrap justify-center gap-3" style={{ animationDelay: "0.5s" }}>
-        <Button onClick={onStart} className="px-8 py-3 text-base">Choose your nation</Button>
+      <div className="animate-rise relative mt-8 flex flex-wrap justify-center gap-3" style={{ animationDelay: "0.5s" }}>
+        <Button onClick={onStart} className="px-8 py-3 text-base">Make your move</Button>
         <Button variant="outline" onClick={onHowItWorks}>How the game works</Button>
       </div>
-      <div className="animate-rise relative mt-16 grid max-w-5xl grid-cols-1 gap-4 text-left sm:grid-cols-2 lg:grid-cols-4" style={{ animationDelay: "0.7s" }}>
+      <WorldProgress />
+      <div className="animate-rise relative mt-10 grid max-w-5xl grid-cols-1 gap-4 text-left sm:grid-cols-2 lg:grid-cols-4" style={{ animationDelay: "0.7s" }}>
         {[
-          ["The board", "Every country in the World Bank's data. Your region is your battlefield; development is the only weapon."],
-          ["Fortune dice", "Each turn the world rolls: slowdowns, commodity booms, droughts. Real world data sets the odds."],
-          ["High stakes", "Options tailored to your country, from mega-dams to IMF loans. Some pay off big; some backfire; some are not what they seem."],
+          ["Any nation", "Every country in the World Bank's data, starting from its real conditions in a real year."],
+          ["Real choices", "Options tailored to your country, from clinics to mega-dams. Some pay off big; some backfire; some are not what they seem."],
+          ["Lives, counted", "See how many children survive and how many homes get power because of what you decided."],
           ["Your story vs history", "After every decision, read what happened in your timeline and what really happened, chapter by chapter."],
         ].map(([t, d]) => (
           <div key={t} className="rounded-lg border border-line bg-panel/70 p-4 backdrop-blur-sm">

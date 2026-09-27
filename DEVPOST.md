@@ -1,14 +1,16 @@
-# Beat History
+# Humanity's Next Move
 
-**Tagline:** A board game of global development. Choose any nation, rewrite its future, then discover what actually happened.
+**Tagline:** Big problems can feel overwhelming. Change is possible, and this game shows you how.
 
 ## Inspiration
+
+So many people feel overwhelmed by the world's problems. Poverty, disease and climate change seem so large that nothing one person or one government does could matter, and that feeling easily turns into giving up. But the data tells a different story. World Bank figures show the world has cut infant mortality by more than half since 1990 and added years to the average life. That progress was not luck; it came from decisions. We built Humanity's Next Move so people can make those decisions themselves and see, in real numbers, that change is possible.
 
 Development statistics shape billions of lives, yet most people only ever meet them as charts they scroll past. We wanted people to *feel* the tradeoffs behind those numbers: why electrifying a country fast can mean burning coal, why schools built today only pay off a decade later, and why a global recession can undo years of progress. So we turned the World Bank's development data into a game where you make those decisions yourself, and then face what really happened.
 
 ## What it does
 
-Beat History is a turn-based strategy game built on real data from the World Bank Indicators API.
+Humanity's Next Move is a turn-based strategy game built on real data from the World Bank Indicators API.
 
 - **Pick any nation** on an interactive world map. 187 of the 217 countries in the World Bank data have enough coverage for a 20-year game, and start years are enabled only where real data exists.
 - **Take office in a real year** and see the country's real starting conditions: population, income, life expectancy, infant mortality, electricity access, schooling, emissions and more. Every number shows its World Bank indicator code and observation year.
@@ -21,6 +23,8 @@ Beat History is a turn-based strategy game built on real data from the World Ban
 - **The reveal.** At the end, the game shows your full timeline against the country's real World Bank history. Charts, a "History Delta" by category, and an impact ledger translate the difference into infant lives saved, people with electricity, and tonnes of CO2.
 
 ## How it addresses AI for Social Good
+
+- The core message is hope grounded in evidence: the landing page shows live World Bank data on how much the world has improved since 1990, and the final screen tells each player how many lives their own decisions saved compared with doing nothing, closing with "Humanity's next move is yours."
 
 - The goal of the game is human welfare: the score rewards health, education, infrastructure, income and sustainability, and every policy is tagged with the UN Sustainable Development Goals it targets.
 - The impact ledger turns abstract indicator changes into people: babies who survived their first year, households with power, emissions avoided or added.

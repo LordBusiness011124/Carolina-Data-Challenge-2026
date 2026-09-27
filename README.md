@@ -1,8 +1,10 @@
-# Beat History
+# Humanity's Next Move
 
-**A board game of global development. Choose any nation. Rewrite its future. Then discover what actually happened.**
+**Big problems can feel overwhelming. This game shows that change is possible.**
 
-Beat History is a turn-based strategy board game built on real historical development data from the [World Bank Indicators API](https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation). Pick any country on a world map (187 of the 217 countries in the API have enough data), take office in a real year, and govern for 20 years. Your region is the board: out-develop your real-world neighbors to spread your influence, roll the fortune dice each turn, and choose from realistic, high-stakes policies tailored to your country, some of which are not what they seem. After every decision the game tells the story of what happened in your timeline and what actually happened in the real country, chapter by chapter. At the end it reveals the full real trajectory and the lives your choices saved or lost: could you beat history?
+Poverty, disease and climate change are so large that many people feel nothing they do could matter. The real record says otherwise: World Bank data shows the world has more than halved infant mortality since 1990, and added years to the average life. Those gains came from choices. Humanity's Next Move puts those choices in your hands.
+
+Humanity's Next Move is a turn-based strategy board game built on real historical development data from the [World Bank Indicators API](https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation). Pick any country on a world map (187 of the 217 countries in the API have enough data), take office in a real year, and govern for 20 years. Your region is the board: out-develop your real-world neighbors to spread your influence, roll the fortune dice each turn, and choose from realistic, high-stakes policies tailored to your country, some of which are not what they seem. After every decision the game tells the story of what happened in your timeline and what actually happened in the real country, chapter by chapter. At the end it reveals the full real trajectory and the lives your choices saved or lost: could you beat history?
 
 Built for the **AI for Social Good** theme. You win by saving lives and extending electricity, schooling and incomes, never by conquest.
 
@@ -10,7 +12,15 @@ Built for the **AI for Social Good** theme. You win by saving lives and extendin
 
 ## Why we built it
 
-Development statistics are usually read as dashboards. Beat History turns them into decisions with tradeoffs: electrify fast with coal or slowly with renewables, spend on clinics or on factories, borrow now or cut spending. Then it compares your choices with the path the country actually took.
+People feel overwhelmed by the world's problems, and that feeling can turn into giving up. We wanted to show, with real data, that change is possible: that specific decisions about clinics, schools, power and budgets save or cost real lives, and that humanity has already made enormous progress by making such decisions.
+
+Development statistics are usually read as dashboards. Humanity's Next Move turns them into decisions with tradeoffs: electrify fast with coal or slowly with renewables, spend on clinics or on factories, borrow now or cut spending. Then it compares your choices with the path the country actually took.
+
+## Change is possible: how the game makes the point
+
+- **Proof on the landing page.** A live World Bank panel (WLD aggregate) shows how far the world has come since 1990 in infant mortality, life expectancy and electricity access. The numbers come from the API on every load, not from hard-coded values.
+- **A reminder at the start.** The national briefing tells players that every number on the page is made of choices, and choices can change it.
+- **Your impact at the end.** The final screen says, in the player's own numbers, how many babies their decisions kept alive and how many people they brought electricity to, compared with doing nothing, and what real progress the country made over the same years. It closes with the line "Humanity's next move is yours."
 
 ## The board-game layer
 

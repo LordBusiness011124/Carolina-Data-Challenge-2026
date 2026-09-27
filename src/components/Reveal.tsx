@@ -12,6 +12,40 @@ import type { RealHistory } from "@/lib/game/story";
 import type { RivalsPackage } from "@/lib/worldbank/rivals";
 import { ImpactLedger, standingsFor } from "./Board";
 import { Chronicle } from "./Story";
+import { impactVsDoingNothing } from "@/lib/game/impact";
+
+function count(n: number): string {
+  const a = Math.abs(n);
+  return a >= 1e6 ? `${(a / 1e6).toFixed(1)} million` : a >= 1e3 ? `${Math.round(a / 1e3).toLocaleString("en-US")},000` : Math.round(a).toString();
+}
+
+/** The game's core message, in the player's own numbers: choices change outcomes. */
+function ChangeIsPossible({ state, realFrom, realTo }: { state: GameState; realFrom: number | null; realTo: number | null }) {
+  const impact = impactVsDoingNothing(state);
+  const lives = impact.infantLivesSaved ?? 0;
+  const power = impact.peopleWithPower ?? 0;
+  const helped = lives >= 1 || power >= 1;
+  return (
+    <section className="mx-auto mt-8 max-w-3xl rounded-2xl border border-good/40 bg-good/[0.07] p-6 text-center">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.3em] text-good">Change is possible</p>
+      {helped ? (
+        <p className="mt-3 text-lg text-parchment">
+          Compared with doing nothing, your decisions {lives >= 1 ? <>kept about <b className="text-good">{count(lives)} babies</b> alive past their first birthday</> : null}
+          {lives >= 1 && power >= 1 ? " and " : ""}{power >= 1 ? <>brought electricity to about <b className="text-good">{count(power)} people</b></> : null}.
+        </p>
+      ) : (
+        <p className="mt-3 text-lg text-parchment">
+          Compared with doing nothing, your decisions cost about <b className="text-bad">{count(Math.abs(lives))} infant lives</b>. Choices matter in both directions, and that is exactly why better ones are worth making.
+        </p>
+      )}
+      {realFrom !== null && realTo !== null && realTo < realFrom && (
+        <p className="mt-3 text-sm text-parchment/85">And in the real {state.countryName}, infant mortality fell from {realFrom.toFixed(0)} to {realTo.toFixed(0)} per 1,000 births over these twenty years. Real people made that happen.</p>
+      )}
+      <p className="mt-4 font-display text-2xl uppercase tracking-wide text-brass">Humanity&apos;s next move is yours.</p>
+      <p className="mt-1 text-[10px] text-muted">Simulated estimates from the game&apos;s model; real figures from the World Bank Indicators API.</p>
+    </section>
+  );
+}
 import { ATTRIBUTION, Button, Panel } from "./ui";
 
 const COMPARE: IndicatorId[] = ["gdpPerCapita", "lifeExpectancy", "infantMortality", "electricity", "education", "unemployment", "co2", "renewable"];
@@ -78,7 +112,7 @@ export function Reveal({ state, rivals, realSoFar, onRestart, onReplay }: { stat
   return (
     <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-10 sm:px-6">
       <p className="animate-rise text-center text-xs font-semibold uppercase tracking-[0.35em] text-brass">{state.countryName} · {state.startYear}–{state.currentYear}</p>
-      <h1 className="animate-sweep mt-3 text-center font-display text-5xl font-bold uppercase sm:text-7xl">{beat ? "You beat history" : "History wins this time"}</h1>
+      <h1 className="animate-sweep mt-3 text-center font-display text-5xl font-bold uppercase sm:text-7xl">{beat ? "Your move beat history" : "History wins this time"}</h1>
       <div className="animate-rise mx-auto mt-8 grid max-w-3xl grid-cols-2 gap-4" style={{ animationDelay: "0.3s" }}>
         <div className="rounded-xl border border-sim/50 bg-sim/10 p-5 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.25em] text-sim">Your timeline · simulated</p>
@@ -90,6 +124,7 @@ export function Reveal({ state, rivals, realSoFar, onRestart, onReplay }: { stat
         </div>
       </div>
       <p className="mt-3 text-center text-sm text-muted">{OBJECTIVES[state.objective].title} score, 0 to 100, where 50 means no change from {state.startYear}. Same formula for both.</p>
+      <ChangeIsPossible state={state} realFrom={data.history.infantMortality[0]?.value ?? null} realTo={data.history.infantMortality[last]?.value ?? null} />
       {state.personalWealth > 0 && (
         <p className="mx-auto mt-4 max-w-3xl rounded-lg border border-hist/40 bg-hist/10 p-3 text-center text-sm text-hist">
           You left office with about ${Math.round(state.personalWealth)} million in hidden accounts, taken through {state.decisionHistory.filter((d) => POLICIES[d.policyId]?.enrichment).length} corrupt decisions. The impact ledger below shows who paid for it.
