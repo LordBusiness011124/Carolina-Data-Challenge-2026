@@ -1,8 +1,10 @@
-# Beat History
+# Humanity's Next Move
 
-**A board game of global development. Choose any nation. Rewrite its future. Then discover what actually happened.**
+**Big problems can feel overwhelming. This game shows that change is possible.**
 
-Beat History is a turn-based strategy board game built on real historical development data from the [World Bank Indicators API](https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation). Pick any country on a world map (187 of the 217 countries in the API have enough data), take office in a real year, and govern for 20 years. Your region is the board: out-develop your real-world neighbors to spread your influence, roll the fortune dice each turn, and choose from realistic, high-stakes policies tailored to your country, some of which are not what they seem. After every decision the game tells the story of what happened in your timeline and what actually happened in the real country, chapter by chapter. At the end it reveals the full real trajectory and the lives your choices saved or lost: could you beat history?
+Poverty, disease and climate change are so large that many people feel nothing they do could matter. The real record says otherwise: World Bank data shows the world has more than halved infant mortality since 1990, and added years to the average life. Those gains came from choices. Humanity's Next Move puts those choices in your hands.
+
+Humanity's Next Move is a turn-based strategy board game built on real historical development data from the [World Bank Indicators API](https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation). Pick any country on a world map (187 of the 217 countries in the API have enough data), take office in a real year, and govern for 20 years. Your region is the board: out-develop your real-world neighbors to spread your influence, roll the fortune dice each turn, and choose from realistic, high-stakes policies tailored to your country, some of which are not what they seem. After every decision the game tells the story of what happened in your timeline and what actually happened in the real country, chapter by chapter. At the end it reveals the full real trajectory and the lives your choices saved or lost: could you beat history?
 
 Built for the **AI for Social Good** theme. You win by saving lives and extending electricity, schooling and incomes, never by conquest.
 
@@ -10,7 +12,15 @@ Built for the **AI for Social Good** theme. You win by saving lives and extendin
 
 ## Why we built it
 
-Development statistics are usually read as dashboards. Beat History turns them into decisions with tradeoffs: electrify fast with coal or slowly with renewables, spend on clinics or on factories, borrow now or cut spending. Then it compares your choices with the path the country actually took.
+People feel overwhelmed by the world's problems, and that feeling can turn into giving up. We wanted to show, with real data, that change is possible: that specific decisions about clinics, schools, power and budgets save or cost real lives, and that humanity has already made enormous progress by making such decisions.
+
+Development statistics are usually read as dashboards. Humanity's Next Move turns them into decisions with tradeoffs: electrify fast with coal or slowly with renewables, spend on clinics or on factories, borrow now or cut spending. Then it compares your choices with the path the country actually took.
+
+## Change is possible: how the game makes the point
+
+- **Proof on the landing page.** A live World Bank panel (WLD aggregate) shows how far the world has come since 1990 in infant mortality, life expectancy and electricity access. The numbers come from the API on every load, not from hard-coded values.
+- **A reminder at the start.** The national briefing tells players that every number on the page is made of choices, and choices can change it.
+- **Your impact at the end.** The final screen says, in the player's own numbers, how many babies their decisions kept alive and how many people they brought electricity to, compared with doing nothing, and what real progress the country made over the same years. It closes with the line "Humanity's next move is yours."
 
 ## The board-game layer
 
@@ -171,16 +181,56 @@ For each value:
 
 Missing data is never treated as zero. A start year is disabled when a required indicator lacks a real observation at the start or a score category lacks one 20 years later. For example, Vietnam's earliest playable year is 1995 because its electricity data starts in 1997.
 
-## Local setup
+## Run the game on your computer
 
-Requires Node.js 20 or newer and internet access for the World Bank API.
+The game runs locally in your web browser. It works on macOS, Windows and Linux and needs no accounts or API keys.
+
+### 1. Install the prerequisites
+
+- **Node.js 20.9 or newer** (includes npm). Download the LTS version from https://nodejs.org. Check it in a terminal with `node --version`.
+- **Git**, to download the code (https://git-scm.com). Or download the ZIP instead (see step 2).
+- An internet connection. The game loads live data from the World Bank Indicators API.
+
+### 2. Download the code
+
+With Git:
+
+```sh
+git clone https://github.com/LordBusiness011124/Carolina-Data-Challenge-2026.git
+cd Carolina-Data-Challenge-2026
+git checkout Game-remodeling
+```
+
+Without Git: open https://github.com/LordBusiness011124/Carolina-Data-Challenge-2026/tree/Game-remodeling, click **Code**, then **Download ZIP**, unzip it and open a terminal in the unzipped folder.
+
+### 3. Install and start
 
 ```sh
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000. The first load of each country fetches its history from the World Bank; later loads use the cache.
+`npm install` downloads the game's libraries and only needs to run once. When the terminal shows `Ready`, open **http://localhost:3000** in your browser.
+
+To stop the game, press `Ctrl+C` in the terminal. To play again later, open a terminal in the same folder and run `npm run dev`.
+
+### Faster version (optional)
+
+For the smoothest play, for example in a presentation, build an optimized version once and run it:
+
+```sh
+npm run build
+npm start
+```
+
+Then open http://localhost:3000 as before.
+
+### Troubleshooting
+
+- **Port 3000 is already in use:** run `npm run dev -- -p 3001` and open http://localhost:3001.
+- **The first country takes a few seconds to load:** the game is downloading that country's history from the World Bank. Later loads come from a local cache in the `.cache` folder.
+- **"Historical data could not be loaded":** check your internet connection and press Retry. The game never substitutes made-up data.
+- **`npm` is not recognized:** Node.js is not installed or the terminal was opened before installing it. Install Node.js, then open a new terminal.
 
 ## Tests
 

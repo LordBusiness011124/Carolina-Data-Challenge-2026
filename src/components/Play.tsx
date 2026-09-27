@@ -37,6 +37,7 @@ export function CountryBriefing({ state, onBegin }: { state: GameState; onBegin:
           <p className="text-[10px] uppercase tracking-[0.2em] text-brass">Your mission</p>
           <p className="font-display text-2xl uppercase">{OBJECTIVES[state.objective].title}</p>
           <p className="text-sm text-muted">{OBJECTIVES[state.objective].description} Twenty years. Ten decisions. Then history is revealed.</p>
+          <p className="mt-2 text-sm text-good">The problems ahead are real, and they are big. But every number on this page is made of choices, and choices can change it.</p>
         </div>
         <Button onClick={onBegin} className="px-8 py-3 text-base">Begin turn 1</Button>
       </div>

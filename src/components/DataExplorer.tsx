@@ -44,7 +44,7 @@ export default function DataExplorer() {
 
   return (
     <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-10 sm:px-6">
-      <Link href="/" className="text-sm text-muted hover:text-parchment">← Beat History</Link>
+      <Link href="/" className="text-sm text-muted hover:text-parchment">← Humanity&apos;s Next Move</Link>
       <h1 className="mt-3 font-display text-4xl uppercase tracking-wide">Data source</h1>
       <p className="mt-2 text-parchment/80">Every historical value in the game is fetched programmatically from the <a className="text-brass underline" href="https://datahelpdesk.worldbank.org/knowledgebase/articles/889392-about-the-indicators-api-documentation" target="_blank" rel="noreferrer">World Bank Indicators API</a> (v2, JSON). Run a live request below.</p>
       <Panel className="mt-6" eyebrow="Live request" title="World Bank Indicators API">
