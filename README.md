@@ -171,16 +171,56 @@ For each value:
 
 Missing data is never treated as zero. A start year is disabled when a required indicator lacks a real observation at the start or a score category lacks one 20 years later. For example, Vietnam's earliest playable year is 1995 because its electricity data starts in 1997.
 
-## Local setup
+## Run the game on your computer
 
-Requires Node.js 20 or newer and internet access for the World Bank API.
+The game runs locally in your web browser. It works on macOS, Windows and Linux and needs no accounts or API keys.
+
+### 1. Install the prerequisites
+
+- **Node.js 20.9 or newer** (includes npm). Download the LTS version from https://nodejs.org. Check it in a terminal with `node --version`.
+- **Git**, to download the code (https://git-scm.com). Or download the ZIP instead (see step 2).
+- An internet connection. The game loads live data from the World Bank Indicators API.
+
+### 2. Download the code
+
+With Git:
+
+```sh
+git clone https://github.com/LordBusiness011124/Carolina-Data-Challenge-2026.git
+cd Carolina-Data-Challenge-2026
+git checkout Game-remodeling
+```
+
+Without Git: open https://github.com/LordBusiness011124/Carolina-Data-Challenge-2026/tree/Game-remodeling, click **Code**, then **Download ZIP**, unzip it and open a terminal in the unzipped folder.
+
+### 3. Install and start
 
 ```sh
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000. The first load of each country fetches its history from the World Bank; later loads use the cache.
+`npm install` downloads the game's libraries and only needs to run once. When the terminal shows `Ready`, open **http://localhost:3000** in your browser.
+
+To stop the game, press `Ctrl+C` in the terminal. To play again later, open a terminal in the same folder and run `npm run dev`.
+
+### Faster version (optional)
+
+For the smoothest play, for example in a presentation, build an optimized version once and run it:
+
+```sh
+npm run build
+npm start
+```
+
+Then open http://localhost:3000 as before.
+
+### Troubleshooting
+
+- **Port 3000 is already in use:** run `npm run dev -- -p 3001` and open http://localhost:3001.
+- **The first country takes a few seconds to load:** the game is downloading that country's history from the World Bank. Later loads come from a local cache in the `.cache` folder.
+- **"Historical data could not be loaded":** check your internet connection and press Retry. The game never substitutes made-up data.
+- **`npm` is not recognized:** Node.js is not installed or the terminal was opened before installing it. Install Node.js, then open a new terminal.
 
 ## Tests
 
